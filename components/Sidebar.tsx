@@ -1,4 +1,4 @@
-import React from 'react';
+import { type ElementType } from 'react';
 import { 
   BookOpen, 
   GraduationCap, 
@@ -17,7 +17,7 @@ import {
 import clsx from 'clsx';
 import { questionData } from '@/data/questions';
 
-const moduleIcons: Record<string, React.ElementType> = {
+const moduleIcons: Record<string, ElementType> = {
   module1: Cpu,
   module2: Monitor,
   module3: Network,

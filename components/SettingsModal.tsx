@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { X, Trash2, Settings2, Clock, ListOrdered, Save } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -20,10 +20,10 @@ export default function SettingsModal({
   onUpdateExamConfig,
   onClearProgress
 }: SettingsModalProps) {
-  const [tempConfig, setTempConfig] = React.useState(examConfig);
+  const [tempConfig, setTempConfig] = useState(examConfig);
 
   // 当外部配置改变时更新内部状态
-  React.useEffect(() => {
+  useEffect(() => {
     setTempConfig(examConfig);
   }, [examConfig]);
 

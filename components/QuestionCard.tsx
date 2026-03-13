@@ -1,4 +1,3 @@
-import React from 'react';
 import { CheckCircle, XCircle, Info, Maximize2 } from 'lucide-react';
 import clsx from 'clsx';
 import { type Question } from '@/data/questions';
