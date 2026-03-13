@@ -1,4 +1,3 @@
-import React from 'react';
 import { GraduationCap, Clock, ListOrdered, PlayCircle } from 'lucide-react';
 
 interface ExamIntroProps {
