@@ -6,6 +6,7 @@ interface ResultCardProps {
   totalQuestions: number;
   onRestart: () => void;
   onReviewWrong?: () => void;
+  timeUsed?: string;
 }
 
 export default function ResultCard({
@@ -13,7 +14,8 @@ export default function ResultCard({
   correctCount,
   totalQuestions,
   onRestart,
-  onReviewWrong
+  onReviewWrong,
+  timeUsed
 }: ResultCardProps) {
   const isPass = score >= 60;
   
@@ -37,7 +39,7 @@ export default function ResultCard({
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-4 gap-4 mb-8">
         <div className="p-4 bg-gray-50 rounded-2xl">
           <div className="text-sm text-gray-500 mb-1">得分</div>
           <div className={`text-2xl font-bold ${isPass ? 'text-green-600' : 'text-red-600'}`}>
@@ -51,6 +53,10 @@ export default function ResultCard({
         <div className="p-4 bg-gray-50 rounded-2xl">
           <div className="text-sm text-gray-500 mb-1">总题数</div>
           <div className="text-2xl font-bold text-gray-900">{totalQuestions}</div>
+        </div>
+        <div className="p-4 bg-gray-50 rounded-2xl">
+          <div className="text-sm text-gray-500 mb-1">用时</div>
+          <div className="text-2xl font-bold text-gray-900">{timeUsed || '--:--'}</div>
         </div>
       </div>
 

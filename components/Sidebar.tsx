@@ -37,6 +37,8 @@ interface SidebarProps {
   onClose: () => void;
   isCollapsed: boolean;
   toggleCollapse: () => void;
+  // 新增：拦截检查函数
+  checkNavigation: (action: () => void) => void;
 }
 
 export default function Sidebar({
@@ -50,7 +52,21 @@ export default function Sidebar({
   onClose,
   isCollapsed,
   toggleCollapse,
+  checkNavigation
 }: SidebarProps) {
+  // 统一的点击拦截器
+  const handleIntercept = (e: React.MouseEvent, action: () => void) => {
+    e.preventDefault();
+    e.stopPropagation();
+    checkNavigation(action);
+  };
+
+  const handleModuleClick = (moduleId: string) => {
+    if (currentModuleId !== moduleId || mode !== 'practice') {
+      onModuleChange(moduleId);
+    }
+  };
+
   return (
     <aside className={clsx(
       "fixed inset-y-0 left-0 z-40 bg-white border-r border-gray-100 shadow-sm transform transition-all duration-300 ease-in-out md:relative",
@@ -103,58 +119,63 @@ export default function Sidebar({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-3 space-y-6 scrollbar-thin scrollbar-thumb-gray-200">
-          {/* Practice Modules */}
-          <div>
+        <nav className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* Modules Section */}
+          <div className="space-y-2">
             {!isCollapsed && (
-              <div className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-3">
                 基础练习
-              </div>
+              </h3>
             )}
+            
             <div className="space-y-1">
-              {Object.entries(questionData).map(([id, module]) => {
+              {Object.entries(questionData).map(([id, data]) => {
                 const Icon = moduleIcons[id] || BookOpen;
+                const isActive = currentModuleId === id && mode === 'practice';
+                
                 return (
-                <button
-                  key={id}
-                  onClick={() => onModuleChange(id)}
-                  title={isCollapsed ? module.title : undefined}
-                  className={clsx(
-                    "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group relative",
-                    currentModuleId === id && mode === 'practice'
-                      ? "bg-blue-50 text-blue-700 shadow-sm"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
-                    isCollapsed && "justify-center"
-                  )}
-                >
-                  <Icon size={18} className={clsx(
-                    "transition-colors flex-shrink-0",
-                    currentModuleId === id && mode === 'practice' ? "text-blue-500" : "text-gray-400 group-hover:text-gray-500",
-                    !isCollapsed && "mr-3"
-                  )} />
-                  {!isCollapsed && (
-                    <>
-                      <span className="truncate text-left flex-1">{module.title}</span>
-                      {currentModuleId === id && mode === 'practice' && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500 ml-2" />
-                      )}
-                    </>
-                  )}
-                </button>
-              )})}
+                  <button
+                    key={id}
+                    onClick={(e) => handleIntercept(e, () => handleModuleClick(id))}
+                    title={isCollapsed ? data.title : undefined}
+                    className={clsx(
+                      "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group",
+                      isActive 
+                        ? "bg-blue-50 text-blue-700 shadow-sm" 
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
+                      isCollapsed && "justify-center"
+                    )}
+                  >
+                    <Icon 
+                      size={18} 
+                      className={clsx(
+                        "transition-colors",
+                        isActive ? "text-blue-600" : "text-gray-400 group-hover:text-gray-500",
+                        !isCollapsed && "mr-3"
+                      )} 
+                    />
+                    {!isCollapsed && <span className="flex-1 text-left truncate">{data.title}</span>}
+                    
+                    {!isCollapsed && isActive && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ml-2" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Challenge Modes */}
-          <div>
+          {/* Exam Section */}
+          <div className="space-y-2">
             {!isCollapsed && (
-              <div className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                挑战模式
-              </div>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-3">
+                模拟测试
+              </h3>
             )}
+            
             <div className="space-y-1">
               <button
-                onClick={onStartExam}
+                onClick={(e) => handleIntercept(e, onStartExam)}
                 title={isCollapsed ? "随机综合考试" : undefined}
                 className={clsx(
                   "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group",
@@ -164,16 +185,19 @@ export default function Sidebar({
                   isCollapsed && "justify-center"
                 )}
               >
-                <GraduationCap size={18} className={clsx(
-                  "transition-colors flex-shrink-0",
-                  mode === 'exam' ? "text-purple-500" : "text-gray-400 group-hover:text-gray-500",
-                  !isCollapsed && "mr-3"
-                )} />
+                <GraduationCap 
+                  size={18} 
+                  className={clsx(
+                    "transition-colors",
+                    mode === 'exam' ? "text-purple-600" : "text-gray-400 group-hover:text-gray-500",
+                    !isCollapsed && "mr-3"
+                  )} 
+                />
                 {!isCollapsed && <span className="flex-1 text-left">随机综合考试</span>}
               </button>
-              
+
               <button
-                onClick={onStartInfinite}
+                onClick={(e) => handleIntercept(e, onStartInfinite)}
                 title={isCollapsed ? "随机无尽模式" : undefined}
                 className={clsx(
                   "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group",
@@ -183,11 +207,14 @@ export default function Sidebar({
                   isCollapsed && "justify-center"
                 )}
               >
-                <InfinityIcon size={18} className={clsx(
-                  "transition-colors flex-shrink-0",
-                  mode === 'infinite' ? "text-indigo-500" : "text-gray-400 group-hover:text-gray-500",
-                  !isCollapsed && "mr-3"
-                )} />
+                <InfinityIcon 
+                  size={18} 
+                  className={clsx(
+                    "transition-colors",
+                    mode === 'infinite' ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-500",
+                    !isCollapsed && "mr-3"
+                  )} 
+                />
                 {!isCollapsed && <span className="flex-1 text-left">随机无尽模式</span>}
               </button>
             </div>
@@ -196,7 +223,7 @@ export default function Sidebar({
           {/* Settings Entry */}
           <div className="pt-4 border-t border-gray-50">
             <button
-              onClick={onOpenSettings}
+              onClick={(e) => handleIntercept(e, onOpenSettings)}
               title={isCollapsed ? "设置" : undefined}
               className={clsx(
                 "w-full flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 group text-gray-600 hover:bg-gray-50 hover:text-gray-900",
@@ -212,10 +239,13 @@ export default function Sidebar({
         {/* Footer */}
         {!isCollapsed && (
           <div className="p-4 border-t border-gray-50 bg-gray-50/50">
-            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl p-4 text-white shadow-lg shadow-blue-200">
-              <h3 className="font-bold text-sm mb-1">加油！</h3>
-              <p className="text-xs text-blue-100 opacity-90">
-                每天进步一点点，坚持就是胜利。
+            <div className="bg-blue-50 rounded-xl p-3">
+              <div className="flex items-center space-x-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                <span className="text-xs font-bold text-blue-700">复习小贴士</span>
+              </div>
+              <p className="text-xs text-blue-600/80 leading-relaxed">
+                每天坚持练习 20 题，轻松掌握信息技术知识点！
               </p>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { 
-  Menu, ChevronLeft, ChevronRight, CheckCircle, Clock, Search
+  Menu, ChevronLeft, ChevronRight, CheckCircle, Clock, Search, LogOut
 } from 'lucide-react';
 import { questionData, type ModuleData, type Question } from '@/data/questions';
 import clsx from 'clsx';
@@ -11,8 +11,11 @@ import QuestionCard from './QuestionCard';
 import ResultCard from './ResultCard';
 import ProgressModal from './ProgressModal';
 import SettingsModal from './SettingsModal';
+import ExamIntro from './ExamIntro';
+import ConfirmationModal from './ConfirmationModal';
 
 type AppMode = 'practice' | 'exam' | 'infinite';
+type ExamState = 'intro' | 'active' | 'result';
 
 const PROGRESS_STORAGE_KEY = 'quiz_progress_v1';
 const SETTINGS_STORAGE_KEY = 'quiz_settings_v1';
@@ -33,6 +36,9 @@ export default function QuizApp() {
   const [showResultCard, setShowResultCard] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [examState, setExamState] = useState<ExamState>('intro');
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
+  const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
   
   // 考试配置
   const [examConfig, setExamConfig] = useState({
@@ -70,6 +76,9 @@ export default function QuizApp() {
     }
   }, []);
 
+  // 检查是否正在考试中
+  const isExamActive = mode === 'exam' && examState === 'active' && !examSubmitted;
+
   // 进度保存到 localStorage
   useEffect(() => {
     if (Object.keys(userAnswers).length > 0) {
@@ -89,7 +98,7 @@ export default function QuizApp() {
   // 考试计时逻辑
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (mode === 'exam' && !examSubmitted && timeLeft > 0) {
+    if (isExamActive && timeLeft > 0) {
       timer = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -101,7 +110,7 @@ export default function QuizApp() {
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [mode, examSubmitted, timeLeft]);
+  }, [isExamActive, timeLeft]);
 
   // 格式化时间
   const formatTime = (seconds: number) => {
@@ -207,11 +216,21 @@ export default function QuizApp() {
     setCurrentQuestionIndex(prev => Math.max(0, prev - 1));
   };
 
+  // 退出考试（提前交卷）
+  const handleExitExam = () => {
+    // 无论是点“退出”还是底部的“提交”，逻辑是一样的，都是提前交卷
+    // 直接复用 submitConfirmOpen 逻辑，或者直接打开 exitConfirmOpen
+    // 为了文案区分，这里使用 exitConfirmOpen，逻辑也是执行 performSubmit
+    setExitConfirmOpen(true);
+  };
+  
+  const confirmExitExam = () => {
+    performSubmit();
+    setExitConfirmOpen(false);
+  };
+
   // 切换模块
   const handleModuleChange = (moduleId: string) => {
-    if (mode === 'exam' && !examSubmitted && examQuestions.length > 0) {
-      if (!confirm('正在考试中，切换模块将丢失当前进度，确认切换？')) return;
-    }
     setMode('practice');
     setCurrentModuleId(moduleId);
     setCurrentQuestionIndex(0);
@@ -220,10 +239,17 @@ export default function QuizApp() {
     setShowResultCard(false);
   };
 
-  // 开始考试
+  // 准备进入考试模式（显示介绍页）
+  const prepareExam = () => {
+    setMode('exam');
+    setExamState('intro');
+    setSidebarOpen(false);
+    setShowResultCard(false);
+    setExamSubmitted(false);
+  };
+
+  // 正式开始考试
   const startExam = () => {
-    if (mode === 'exam' && !examSubmitted && !confirm('确认重新开始考试？')) return;
-    
     const allQuestions = getAllQuestions();
     
     // 随机取题目数量 (根据设置)
@@ -234,12 +260,11 @@ export default function QuizApp() {
     }));
     
     setExamQuestions(newExamQuestions);
-    setMode('exam');
+    setExamState('active');
     setCurrentQuestionIndex(0);
     setUserAnswers(prev => ({ ...prev, 'exam': {} }));
     setExamSubmitted(false);
     setShowResultCard(false);
-    setSidebarOpen(false);
     setTimeLeft(examConfig.timeLimit * 60); // 设置倒计时
   };
 
@@ -261,21 +286,43 @@ export default function QuizApp() {
     }
   };
 
+  // 打开设置
+  const handleOpenSettings = () => {
+    setIsSettingsModalOpen(true);
+    setSidebarOpen(false);
+  };
+
+
   // 提交试卷
   const submitExam = (auto = false) => {
-    if (!auto && !confirm('确认提交试卷？提交后将无法修改答案。')) return;
+    // 如果不是自动提交（即手动点击提交按钮），则不直接执行逻辑，而是打开确认弹窗
+    if (!auto) {
+      setSubmitConfirmOpen(true);
+      return;
+    }
+    
+    // 执行实际提交逻辑
+    performSubmit();
+    
+    // 如果是自动提交（时间到），不需要弹窗，因为界面会直接切换到结果页
+    // 如果需要提示，可以在结果页显示 "时间已到，自动交卷"
+  };
+
+  const performSubmit = () => {
     setExamSubmitted(true);
+    setExamState('result');
     setShowResultCard(true); // 显示成绩卡
-    setCurrentQuestionIndex(0); 
-    if (auto) alert('考试时间到，系统已自动提交试卷。');
+    setCurrentQuestionIndex(0);
+    setSubmitConfirmOpen(false); // 关闭可能存在的弹窗
   };
 
   const restartExam = () => {
-    startExam();
+    prepareExam();
   };
 
   const reviewWrong = () => {
     setShowResultCard(false);
+    setExamState('result'); // 保持结果状态，但隐藏成绩卡以查看题目
     // 找到第一个错题
     const firstWrongIndex = examQuestions.findIndex((q, i) => userAnswers['exam']?.[i] !== q.correctAnswer);
     if (firstWrongIndex !== -1) {
@@ -300,8 +347,8 @@ export default function QuizApp() {
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
-      {/* Mobile Menu Button */}
-      {!sidebarOpen && (
+      {/* Mobile Menu Button - 考试进行中不显示 */}
+      {!sidebarOpen && !isExamActive && (
         <button 
           className="fixed top-4 left-4 z-50 p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-gray-200 md:hidden"
           onClick={() => setSidebarOpen(true)}
@@ -310,21 +357,22 @@ export default function QuizApp() {
         </button>
       )}
 
-      <Sidebar 
-        currentModuleId={currentModuleId}
-        mode={mode}
-        onModuleChange={handleModuleChange}
-        onStartExam={startExam}
-        onStartInfinite={startInfinite}
-        onOpenSettings={() => {
-          setIsSettingsModalOpen(true);
-          setSidebarOpen(false);
-        }}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        isCollapsed={sidebarCollapsed}
-        toggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
+      {/* Sidebar - 考试进行中不显示 */}
+      {!isExamActive && (
+        <Sidebar 
+          currentModuleId={currentModuleId}
+          mode={mode}
+          onModuleChange={handleModuleChange}
+          onStartExam={prepareExam}
+          onStartInfinite={startInfinite}
+          onOpenSettings={handleOpenSettings}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          isCollapsed={sidebarCollapsed}
+          toggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          checkNavigation={(action) => action()} // 默认放行，因为 QuizApp 已经处理了显隐逻辑
+        />
+      )}
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-gray-50/50">
         {/* Header */}
@@ -336,7 +384,24 @@ export default function QuizApp() {
           </div>
           
           <div className="flex items-center space-x-2 md:space-x-4 flex-shrink-0">
-             {mode === 'exam' && !examSubmitted && (
+             {/* 退出考试按钮 */}
+             {isExamActive && (
+               <button 
+                 type="button"
+                 onClick={(e) => {
+                   e.preventDefault();
+                   e.stopPropagation();
+                   handleExitExam();
+                 }}
+                 className="flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium border border-red-100 hover:bg-red-100 transition-colors"
+                 title="提前交卷"
+               >
+                 <CheckCircle size={14} className="mr-1" />
+                 交卷
+               </button>
+             )}
+
+             {mode === 'exam' && examState === 'active' && !examSubmitted && (
                <div className="flex items-center px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-medium border border-purple-100 whitespace-nowrap">
                  <Clock size={14} className="mr-1 md:mr-2" />
                  {formatTime(timeLeft)}
@@ -383,16 +448,45 @@ export default function QuizApp() {
           onClearProgress={handleClearProgress}
         />
 
+        <ConfirmationModal 
+          isOpen={exitConfirmOpen}
+          onClose={() => setExitConfirmOpen(false)}
+          onConfirm={confirmExitExam}
+          title="提前交卷"
+          message="确认提前交卷并查看成绩？交卷后将无法修改答案。"
+          confirmText="交卷"
+          cancelText="继续答题"
+          variant="danger"
+        />
+
+        <ConfirmationModal 
+          isOpen={submitConfirmOpen}
+          onClose={() => setSubmitConfirmOpen(false)}
+          onConfirm={performSubmit}
+          title="提交试卷"
+          message="确认提交试卷？提交后将无法修改答案。"
+          confirmText="提交"
+          cancelText="继续答题"
+          variant="info"
+        />
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
           <div className="max-w-3xl mx-auto pb-24">
-            {showResultCard && mode === 'exam' ? (
+            {mode === 'exam' && examState === 'intro' ? (
+              <ExamIntro 
+                questionCount={examConfig.questionCount}
+                timeLimit={examConfig.timeLimit}
+                onStart={startExam}
+              />
+            ) : showResultCard && mode === 'exam' ? (
               <ResultCard 
                 score={examResult.score}
                 correctCount={examResult.correct}
                 totalQuestions={examQuestions.length}
                 onRestart={restartExam}
                 onReviewWrong={reviewWrong}
+                timeUsed={formatTime(examConfig.timeLimit * 60 - timeLeft)}
               />
             ) : currentQuestion ? (
               <div className="space-y-6">
