@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初中信息技术选择题练习系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+    <!-- 图片模态框（放大查看） -->
+    <div class="image-modal" id="imageModal">
+        <button class="close-modal" id="closeModal">&times;</button>
+        <img class="modal-image" id="modalImage" src="" alt="放大图片">
+    </div>
+    
+    <!-- 考试计时器 -->
+    <div class="exam-timer" id="examTimer">
+        <i class="fas fa-clock"></i>
+        剩余时间：60:00
+    </div>
+    
+    <header>
+        <h1><i class="fas fa-laptop-code"></i> 初中信息技术选择题练习系统</h1>
+        <p class="subtitle">请按顺序答题，每道题答完后将显示解析</p>
+    </header>
+    
+    <div class="container">
+        <div class="sidebar">
+            <h2><i class="fas fa-list-ul"></i> 题目模块</h2>
+            <ul class="module-list" id="moduleList">
+                <!-- 模块列表将通过JavaScript动态生成 -->
+            </ul>
+            
+            <!-- 错题统计容器 -->
+            <div class="wrong-questions-container" id="wrongQuestionsContainer">
+                <h3><i class="fas fa-exclamation-circle"></i> 错题统计</h3>
+                <div class="wrong-questions-list" id="wrongQuestionsList"></div>
+            </div>
+            
+            <!-- 得分容器 -->
+            <div class="score-container" id="scoreContainer"></div>
+        </div>
+        
+        <div class="main-content">
+            <!-- 定位功能 -->
+            <div class="position-container">
+                <div class="position-input-group">
+                    <i class="fas fa-search"></i>
+                    <input 
+                        type="number" 
+                        id="positionInput" 
+                        min="1" 
+                        placeholder="输入题目编号"
+                        title="输入题目编号，按Enter或点击跳转按钮定位"
+                    >
+                    <button id="jumpBtn" class="jump-btn" title="跳转到指定题目">
+                        <i class="fas fa-arrow-right"></i> 跳转
+                    </button>
+                </div>
+                <div class="position-hint" id="positionHint">
+                    提示：输入1-<span id="maxQuestionNum">163</span>之间的数字
+                </div>
+            </div>
+            
+            <!-- 考试信息面板 -->
+            <div class="exam-info-panel" id="examInfoPanel">
+                <div class="exam-info-content">
+                    <div class="exam-info-item">
+                        <div class="exam-info-value" id="totalExamQuestions">20</div>
+                        <div class="exam-info-label">总题数</div>
+                    </div>
+                    <div class="exam-info-item">
+                        <div class="exam-info-value" id="answeredCount">0</div>
+                        <div class="exam-info-label">已答题</div>
+                    </div>
+                    <div class="exam-info-item">
+                        <div class="exam-info-value" id="remainingCount">20</div>
+                        <div class="exam-info-label">未答题</div>
+                    </div>
+                    <div class="exam-info-item">
+                        <div class="exam-info-value">60分钟</div>
+                        <div class="exam-info-label">考试时长</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 题目容器 -->
+            <div class="question-container" id="questionContainer"></div>
+            
+            <!-- 提交考试按钮 -->
+            <button class="submit-exam-btn" id="submitExamBtn">
+                <i class="fas fa-paper-plane"></i> 提交试卷
+            </button>
+            
+            <!-- 导航按钮 -->
+            <div class="navigation-buttons">
+                <button class="prev-btn" id="prevBtn"><i class="fas fa-arrow-left"></i> 上一题</button>
+                <button class="next-btn" id="nextBtn">下一题 <i class="fas fa-arrow-right"></i></button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="assets/js/data.js"></script>
+    <script src="assets/js/app.js"></script>
+</body>
+</html>
