@@ -1,13 +1,13 @@
 'use client';
 
 import { Menu } from 'lucide-react';
-import Sidebar from './Sidebar';
-import ProgressModal from './ProgressModal';
-import SettingsModal from './SettingsModal';
-import ConfirmationModal from './ConfirmationModal';
-import WelcomePage from './WelcomePage';
-import QuizHeader from './QuizHeader';
-import QuizMain from './QuizMain';
+import Sidebar from './layout/Sidebar';
+import ProgressModal from './modals/ProgressModal';
+import SettingsModal from './modals/SettingsModal';
+import ConfirmationModal from './modals/ConfirmationModal';
+import WelcomePage from './home/WelcomePage';
+import QuizHeader from './quiz/QuizHeader';
+import QuizMain from './quiz/QuizMain';
 
 import { useQuizState } from '@/hooks/useQuizState';
 import { useExamLogic } from '@/hooks/useExamLogic';

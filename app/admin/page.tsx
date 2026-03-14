@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ModuleData, Question, QuestionData } from '@/data/types';
 import { Save, Plus, Trash2, Edit2, ChevronRight, X, AlertCircle } from 'lucide-react';
-import ConfirmationModal from '@/components/ConfirmationModal'; // 引入自定义组件
+import ConfirmationModal from '@/components/modals/ConfirmationModal'; // 引入自定义组件
 
 export default function AdminPage() {
   const [data, setData] = useState<QuestionData | null>(null);

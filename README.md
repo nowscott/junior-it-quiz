@@ -2,63 +2,83 @@
 
 这是一个基于现代 Web 技术栈重构的信息技术练习系统，旨在提供更流畅、美观且功能丰富的在线刷题体验。
 
-## 技术栈
+## ✨ 核心特性
 
-- **框架**: [Next.js 15](https://nextjs.org/) (App Router)
-- **语言**: [TypeScript](https://www.typescriptlang.org/)
-- **样式**: [TailwindCSS](https://tailwindcss.com/)
+- **多模式练习**：
+  - **基础练习**：按知识点模块分类练习，即时反馈正误，支持错题回顾。
+  - **模拟考试**：随机抽取题目，限时答题，模拟真实考试环境，交卷后生成详细成绩单。
+  - **无尽模式**：随机无限刷题，挑战连续答对记录。
+- **数据持久化**：
+  - 自动保存答题进度，关闭浏览器后可继续上次练习。
+  - 记录考试历史和错题集。
+- **现代化 UI/UX**：
+  - **响应式设计**：完美适配移动端、平板和桌面端。
+  - **流畅交互**：优雅的动画效果，无缝的页面切换。
+  - **沉浸体验**：支持全屏模式，专注于答题。
+- **管理后台 (开发环境)**：
+  - 内置 `/admin` 路由，方便在开发环境下直接管理和编辑题库数据。
+
+## 🛠 技术栈
+
+- **框架**: [Next.js 16](https://nextjs.org/) (App Router)
+- **语言**: [TypeScript 5](https://www.typescriptlang.org/)
+- **UI 库**: [React 19](https://react.dev/)
+- **样式**: [TailwindCSS 4](https://tailwindcss.com/)
 - **图标**: [Lucide React](https://lucide.dev/)
 - **部署**: [Vercel](https://vercel.com/) (推荐)
 
-## 核心功能
+## 🚀 快速开始
 
-1.  **模块化练习**：包含6个基础知识模块，支持即时答题反馈。
-2.  **随机综合考试**：
-    *   从全库随机抽取20道题目。
-    *   模拟真实考试环境，交卷后显示成绩单和错题解析。
-3.  **随机无尽模式**：
-    *   **智能洗牌算法**：确保题目在不重复的情况下循环出现。
-    *   **自动续题**：答题后自动跳转下一题，提供沉浸式刷题体验。
-4.  **现代化 UI**：
-    *   响应式设计，完美适配移动端和桌面端。
-    *   优雅的动画和交互效果。
-    *   支持题目插图放大查看。
+1.  **克隆项目**：
+    ```bash
+    git clone https://github.com/your-username/junior-it-quiz.git
+    cd junior-it-quiz
+    ```
 
-## 本地运行
-
-1.  安装依赖：
+2.  **安装依赖**：
     ```bash
     npm install
     ```
 
-2.  启动开发服务器：
+3.  **启动开发服务器**：
     ```bash
     npm run dev
     ```
 
-3.  打开浏览器访问 [http://localhost:3000](http://localhost:3000)。
+4.  **访问应用**：
+    打开浏览器访问 [http://localhost:3000](http://localhost:3000)。
 
-## 部署到 Vercel
+## 📂 目录结构
 
-本项目针对 Vercel 进行了优化，部署非常简单：
+```
+junior-it-quiz/
+├── app/                  # Next.js App Router 路由和页面
+│   ├── admin/            # 管理后台页面
+│   ├── api/              # API 路由 (处理题目数据)
+│   └── page.tsx          # 应用入口
+├── components/           # React UI 组件
+│   ├── home/             # 首页组件 (WelcomePage)
+│   ├── layout/           # 布局组件 (Sidebar)
+│   ├── modals/           # 弹窗组件 (设置、确认、进度)
+│   └── quiz/             # 答题核心组件 (QuestionCard, ResultCard 等)
+├── data/                 # 题库数据
+│   ├── questions.json    # 题目数据源 (JSON 格式)
+│   └── types.ts          # TypeScript 类型定义
+├── hooks/                # 自定义 React Hooks (状态管理、逻辑处理)
+├── public/               # 静态资源 (图片等)
+└── utils/                # 工具函数
+```
 
-1.  将代码推送到 GitHub。
-2.  登录 [Vercel](https://vercel.com)，点击 "Add New..." -> "Project"。
-3.  导入你的 GitHub 仓库。
-4.  保持默认配置，点击 "Deploy"。
+## 📝 数据管理
 
-## 目录结构
+- **题库文件**：主要数据存储在 `data/questions.json` 中。
+- **管理功能**：在开发模式 (`npm run dev`) 下，访问 `/admin` 可以图形化地添加、修改和删除题目。
+- **生产环境**：在 Vercel 等平台部署时，文件系统通常是只读的，因此管理功能仅用于本地开发和数据维护。
 
-- `app/`: Next.js 路由和页面入口。
-- `components/`: React UI 组件 (Sidebar, QuestionCard, ResultCard 等)。
-- `data/`: 题库数据 (TypeScript 格式)。
-- `public/`: 静态资源 (图片等)。
-- `lib/`: 工具函数。
-
-## 致谢与版权
+## 🤝 致谢与版权
 
 本项目重构自 **lanxin140513** 的 [cwezczbxxjslx](https://github.com/lanxin140513/cwezczbxxjslx) 仓库。
 题库数据及部分原始资源均来源于该仓库，在此表示感谢！
 
 ---
-*Next.js 重构版*
+*Next.js 重构版 - 为初中生信息技术复习提供更好的工具*
