@@ -36,8 +36,8 @@ export function useQuizState() {
   const [examSeedString, setExamSeedString] = useState<string>('');
   
   const [examConfig, setExamConfig] = useState<ExamConfig>({
-    questionCount: 20,
-    timeLimit: 60
+    questionCount: 30,
+    timeLimit: 30
   });
 
   const [timeLeft, setTimeLeft] = useState(0);

@@ -3,32 +3,33 @@
 import { Menu } from 'lucide-react';
 import Sidebar from './layout/Sidebar';
 import ProgressModal from './modals/ProgressModal';
-import SettingsModal from './modals/SettingsModal';
 import ConfirmationModal from './modals/ConfirmationModal';
 import WelcomePage from './home/WelcomePage';
 import QuizHeader from './quiz/QuizHeader';
 import QuizMain from './quiz/QuizMain';
+import SettingsView from './settings/SettingsView';
 
 import { useQuizState } from '@/hooks/useQuizState';
 import { useExamLogic } from '@/hooks/useExamLogic';
+
 
 export default function QuizApp() {
   const { state, actions } = useQuizState();
   const { handlers, computed } = useExamLogic(state, actions);
 
+
   const {
     currentModuleId, mode, currentQuestionIndex, userAnswers,
     examQuestions, sidebarOpen, sidebarCollapsed,
     examSubmitted, showResultCard, isProgressModalOpen, isSettingsModalOpen,
-    examState, exitConfirmOpen, submitConfirmOpen, clearConfirmOpen,
+    examState, exitConfirmOpen, submitConfirmOpen,
     examSessionId, examSeedString, examConfig, timeLeft, notification,
     defaultModuleId
   } = state;
 
   const {
     setSidebarOpen, setSidebarCollapsed, setIsProgressModalOpen,
-    setIsSettingsModalOpen, setExitConfirmOpen, setSubmitConfirmOpen,
-    setClearConfirmOpen, setExamConfig
+    setExitConfirmOpen, setSubmitConfirmOpen, setIsSettingsModalOpen
   } = actions;
 
   const {
@@ -44,12 +45,9 @@ export default function QuizApp() {
     handlePrevQuestion,
     handleExitExam,
     confirmExitExam,
-    handleClearProgress,
-    confirmClearProgress,
     handleBackToResult,
     restartExam,
     reviewWrong,
-    handleOpenSettings,
     closeNotification
   } = handlers;
 
@@ -81,7 +79,10 @@ export default function QuizApp() {
           onModuleChange={handleModuleChange}
           onStartExam={prepareExam}
           onStartInfinite={startInfinite}
-          onOpenSettings={handleOpenSettings}
+          onOpenSettings={() => {
+            setSidebarOpen(false);
+            actions.setIsSettingsModalOpen(true);
+          }}
           onGoHome={handleGoHome}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -92,6 +93,7 @@ export default function QuizApp() {
       )}
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-gray-50/50">
+        <SettingsView isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
         {mode === 'welcome' ? (
           <div className="flex-1 overflow-y-auto">
             {!sidebarOpen && (
@@ -138,14 +140,6 @@ export default function QuizApp() {
               showResults={isReviewing}
             />
 
-            <SettingsModal 
-              isOpen={isSettingsModalOpen}
-              onClose={() => setIsSettingsModalOpen(false)}
-              examConfig={examConfig}
-              onUpdateExamConfig={setExamConfig}
-              onClearProgress={handleClearProgress}
-            />
-
             <ConfirmationModal 
               isOpen={exitConfirmOpen}
               onClose={() => setExitConfirmOpen(false)}
@@ -169,17 +163,6 @@ export default function QuizApp() {
             />
 
             <ConfirmationModal 
-              isOpen={clearConfirmOpen}
-              onClose={() => setClearConfirmOpen(false)}
-              onConfirm={confirmClearProgress}
-              title="清空进度"
-              message="确认清空所有进度？此操作无法撤销。"
-              confirmText="确认清空"
-              cancelText="取消"
-              variant="danger"
-            />
-
-            <ConfirmationModal 
               isOpen={notification.isOpen}
               onClose={closeNotification}
               onConfirm={closeNotification}
@@ -190,7 +173,6 @@ export default function QuizApp() {
               variant={notification.type === 'error' ? 'danger' : notification.type === 'success' ? 'info' : 'warning'}
             />
 
-            {/* Content */}
             <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
               <div className="max-w-3xl mx-auto pb-24">
                 <QuizMain 
