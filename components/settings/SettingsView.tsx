@@ -85,8 +85,8 @@ export default function SettingsView({ isOpen, onClose }: SettingsViewProps) {
       >
         <div 
           className={clsx(
-            "bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto transition-all duration-300 transform",
-            isOpen ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
+            "bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col transition-all duration-300 transform",
+            isOpen ? "scale-100 translate-y-0 pointer-events-auto" : "scale-95 translate-y-4 pointer-events-none"
           )}
           onClick={(e) => e.stopPropagation()}
         >
