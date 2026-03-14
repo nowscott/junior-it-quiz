@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
-  Menu, ChevronLeft, ChevronRight, CheckCircle, Clock, Search, LogOut
+  Menu, ChevronLeft, ChevronRight, CheckCircle, Clock, Search, LogOut, ArrowLeft
 } from 'lucide-react';
 import { questionData, type ModuleData, type Question } from '@/data/questions';
 import clsx from 'clsx';
@@ -19,6 +19,30 @@ type ExamState = 'intro' | 'active' | 'result';
 
 const PROGRESS_STORAGE_KEY = 'quiz_progress_v1';
 const SETTINGS_STORAGE_KEY = 'quiz_settings_v1';
+
+// 简单的混淆算法
+const encodeSeed = (seed: number, count: number, time: number): string => {
+  const raw = `${seed}-${count}-${time}`;
+  // 简单的 Base64 编码，实际生产中可以加盐或异或
+  return btoa(raw).replace(/=/g, ''); // 移除 Base64 的填充符，使其看起来更像随机字符串
+};
+
+const decodeSeed = (encoded: string): { seed: number, count: number, time: number } | null => {
+  try {
+    const raw = atob(encoded);
+    const parts = raw.split('-');
+    if (parts.length === 3) {
+      return {
+        seed: parseInt(parts[0]),
+        count: parseInt(parts[1]),
+        time: parseInt(parts[2])
+      };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+};
 
 export default function QuizApp() {
   // 动态获取第一个模块 ID 作为默认值
@@ -39,6 +63,11 @@ export default function QuizApp() {
   const [examState, setExamState] = useState<ExamState>('intro');
   const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false); // 新增：清空确认弹窗
+  const [invalidSeedModalOpen, setInvalidSeedModalOpen] = useState(false); // Deprecated, use notification instead
+  // 新增：考试场次 ID，用于生成随机种子
+  const [examSessionId, setExamSessionId] = useState<number>(0);
+  const [examSeedString, setExamSeedString] = useState<string>(''); // 新增：保存完整的种子字符串
   
   // 考试配置
   const [examConfig, setExamConfig] = useState({
@@ -78,8 +107,16 @@ export default function QuizApp() {
 
   // 检查是否正在考试中
   const isExamActive = mode === 'exam' && examState === 'active' && !examSubmitted;
+  
+  // 检查是否在查看错题（已提交，且不在结果页）
+  const isReviewing = mode === 'exam' && examState === 'result' && !showResultCard;
 
-  // 进度保存到 localStorage
+  // 返回成绩单
+  const handleBackToResult = () => {
+    setShowResultCard(true);
+  };
+
+  // 退出考试（提前交卷）进度保存到 localStorage
   useEffect(() => {
     if (Object.keys(userAnswers).length > 0) {
       localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify({
@@ -119,12 +156,40 @@ export default function QuizApp() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const [notification, setNotification] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+
+  const showNotification = (title: string, message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    setNotification({ isOpen: true, title, message, type });
+  };
+
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, isOpen: false }));
+  };
+
   const handleClearProgress = () => {
+    // 替换原生 confirm 为自定义逻辑：这里需要一个 ConfirmModal 状态，或者直接用 notification 提示结果
+    // 由于 confirm 是阻塞的，要替换它需要 UI 状态变更。
+    // 为了简化，这里我们先用 notification 提示，但真正的确认逻辑需要一个专门的 clearConfirmOpen 状态
+    setClearConfirmOpen(true);
+  };
+  const confirmClearProgress = () => {
     localStorage.removeItem(PROGRESS_STORAGE_KEY);
     setUserAnswers({});
     setCurrentQuestionIndex(0);
-    alert('已清空所有进度');
+    setClearConfirmOpen(false);
+    showNotification('清理完成', '已清空所有进度', 'success');
   };
+
   const getAllQuestions = () => {
     const allQuestions: Question[] = [];
     Object.entries(questionData).forEach(([modId, modData]) => {
@@ -246,18 +311,73 @@ export default function QuizApp() {
     setSidebarOpen(false);
     setShowResultCard(false);
     setExamSubmitted(false);
+    // 清空可能存在的上次考试种子输入
+    // 这里不需要做，因为 ExamIntro 组件内部维护了 seedInput 状态
   };
 
   // 正式开始考试
-  const startExam = () => {
+  const startExam = (customSeedString?: string) => {
     const allQuestions = getAllQuestions();
     
+    let seed = Date.now();
+    let questionCount = examConfig.questionCount;
+    let timeLimit = examConfig.timeLimit;
+
+    // 解析种子字符串
+    if (customSeedString) {
+      try {
+        const decoded = decodeSeed(customSeedString);
+        if (decoded) {
+          seed = decoded.seed;
+          questionCount = decoded.count;
+          timeLimit = decoded.time;
+          
+          // 更新当前配置以匹配种子
+          setExamConfig({ questionCount, timeLimit });
+        } else {
+          // 尝试兼容旧的纯数字格式（如果需要）
+          // 或者直接报错
+          if (/^\d+$/.test(customSeedString)) {
+             seed = parseInt(customSeedString);
+          } else {
+             throw new Error('Invalid seed format');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse seed', e);
+        showNotification('无效的种子', '输入的种子格式不正确或已损坏。请检查后重试，或直接点击“开始答题”生成新试卷。', 'error');
+        return; // 直接返回，阻止进入考试
+      }
+    }
+
+    setExamSessionId(seed);
+    // 生成新的种子字符串 (混淆后)
+    setExamSeedString(encodeSeed(seed, questionCount, timeLimit));
+
     // 随机取题目数量 (根据设置)
-    const count = Math.min(examConfig.questionCount, allQuestions.length);
-    const newExamQuestions = allQuestions.sort(() => Math.random() - 0.5).slice(0, count).map((q, i) => ({
-      ...q,
-      examQuestionId: i + 1
-    }));
+    // 为了实现完全可重温，这里应该也使用 seed 来随机选取题目
+    // 但目前先保持随机选取，仅选项打乱受 seed 控制
+    // 修正：如果要是真正的“重温”，题目选取也必须是确定性的
+    // 所以我们需要一个带种子的随机函数来替代 Math.random()
+    
+    const seededRandom = (s: number) => {
+      let localSeed = s;
+      return () => {
+        localSeed = (localSeed * 9301 + 49297) % 233280;
+        return localSeed / 233280;
+      };
+    };
+    
+    const rng = seededRandom(seed);
+    
+    const count = Math.min(questionCount, allQuestions.length);
+    const newExamQuestions = [...allQuestions]
+      .sort(() => rng() - 0.5) // 使用带种子的随机排序
+      .slice(0, count)
+      .map((q, i) => ({
+        ...q,
+        examQuestionId: i + 1
+      }));
     
     setExamQuestions(newExamQuestions);
     setExamState('active');
@@ -265,12 +385,15 @@ export default function QuizApp() {
     setUserAnswers(prev => ({ ...prev, 'exam': {} }));
     setExamSubmitted(false);
     setShowResultCard(false);
-    setTimeLeft(examConfig.timeLimit * 60); // 设置倒计时
+    setTimeLeft(timeLimit * 60); // 设置倒计时
   };
 
   // 开始无尽模式
   const startInfinite = () => {
     setMode('infinite');
+    // 生成新的场次 ID
+    setExamSessionId(Date.now());
+    
     // 初始化第一题
     setInfiniteQuestions([]);
     setCurrentQuestionIndex(0);
@@ -401,6 +524,19 @@ export default function QuizApp() {
                </button>
              )}
 
+             {/* 返回成绩单按钮 (错题回顾时显示) */}
+             {isReviewing && (
+               <button 
+                 type="button"
+                 onClick={handleBackToResult}
+                 className="flex items-center px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition-colors"
+                 title="返回成绩单"
+               >
+                 <ArrowLeft size={14} className="mr-1" />
+                 返回成绩单
+               </button>
+             )}
+
              {mode === 'exam' && examState === 'active' && !examSubmitted && (
                <div className="flex items-center px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-medium border border-purple-100 whitespace-nowrap">
                  <Clock size={14} className="mr-1 md:mr-2" />
@@ -410,34 +546,37 @@ export default function QuizApp() {
              
              <div className="relative">
                <button 
-                 onClick={() => mode === 'practice' && setIsProgressModalOpen(true)}
+                 onClick={() => (mode === 'practice' || isReviewing) && setIsProgressModalOpen(true)}
                  className={clsx(
                    "text-xs md:text-sm font-medium px-3 py-1 rounded-full transition-all flex items-center",
-                   mode === 'practice' 
+                   (mode === 'practice' || isReviewing)
                      ? "bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100" 
                      : "bg-gray-100 text-gray-500"
                  )}
                >
                  {mode === 'infinite' ? (
                    <span>无尽模式 | 第 {currentQuestionIndex + 1} 题</span>
+                 ) : isReviewing ? (
+                   <span>查看答题卡</span>
                  ) : (
                    <span>进度: {currentQuestionIndex + 1} / {currentModuleData?.questions.length}</span>
                  )}
-                 {mode === 'practice' && <Search size={12} className="ml-1 opacity-50" />}
+                 {(mode === 'practice' || isReviewing) && <Search size={12} className="ml-1 opacity-50" />}
                </button>
              </div>
           </div>
         </header>
 
-        {/* Modals */}
+        {/* Progress Modal */}
         <ProgressModal 
           isOpen={isProgressModalOpen}
           onClose={() => setIsProgressModalOpen(false)}
-          title={currentModuleData.title}
+          title={isReviewing ? '答题卡（回顾）' : currentModuleData.title}
           questions={currentModuleData.questions}
-          userAnswers={userAnswers[currentModuleId] || {}}
+          userAnswers={userAnswers[mode === 'exam' ? 'exam' : currentModuleId] || {}}
           currentIndex={currentQuestionIndex}
           onJump={(index) => setCurrentQuestionIndex(index)}
+          showResults={isReviewing} // 在回顾模式下显示正误
         />
 
         <SettingsModal 
@@ -470,6 +609,28 @@ export default function QuizApp() {
           variant="info"
         />
 
+        <ConfirmationModal 
+          isOpen={clearConfirmOpen}
+          onClose={() => setClearConfirmOpen(false)}
+          onConfirm={confirmClearProgress}
+          title="清空进度"
+          message="确认清空所有进度？此操作无法撤销。"
+          confirmText="确认清空"
+          cancelText="取消"
+          variant="danger"
+        />
+
+        <ConfirmationModal 
+          isOpen={notification.isOpen}
+          onClose={closeNotification}
+          onConfirm={closeNotification}
+          title={notification.title}
+          message={notification.message}
+          confirmText="知道了"
+          cancelText="" 
+          variant={notification.type === 'error' ? 'danger' : notification.type === 'success' ? 'info' : 'warning'}
+        />
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
           <div className="max-w-3xl mx-auto pb-24">
@@ -487,6 +648,7 @@ export default function QuizApp() {
                 onRestart={restartExam}
                 onReviewWrong={reviewWrong}
                 timeUsed={formatTime(examConfig.timeLimit * 60 - timeLeft)}
+                examSeed={examSeedString}
               />
             ) : currentQuestion ? (
               <div className="space-y-6">
@@ -495,11 +657,12 @@ export default function QuizApp() {
                   question={currentQuestion}
                   userAnswer={currentUserAnswer}
                   onSelectAnswer={handleAnswer}
-                  showResult={showResult}
-                  mode={mode}
-                />
-                
-                {/* 题目下方的导航按钮 */}
+                showResult={showResult}
+                mode={mode}
+                sessionId={examSessionId} // 传递场次 ID
+              />
+              
+              {/* 题目下方的导航按钮 */}
                 <div className="flex items-center justify-between gap-4 px-2">
                   <button 
                     onClick={handlePrevQuestion}
@@ -509,7 +672,14 @@ export default function QuizApp() {
                     <ChevronLeft size={18} className="mr-1" /> 上一题
                   </button>
                   
-                  {mode === 'exam' && !examSubmitted && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? (
+                  {isReviewing ? (
+                    <button 
+                      onClick={handleBackToResult}
+                      className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-gray-800 text-white hover:bg-gray-900 shadow-lg shadow-gray-200 flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+                    >
+                      <ArrowLeft size={18} className="mr-2" /> 返回成绩单
+                    </button>
+                  ) : mode === 'exam' && !examSubmitted && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? (
                     <button 
                       onClick={() => submitExam()}
                       className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200 flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"

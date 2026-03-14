@@ -9,7 +9,7 @@ interface SettingsModalProps {
     questionCount: number;
     timeLimit: number; // in minutes
   };
-  onUpdateExamConfig: (config: { questionCount: number; timeLimit: number }) => void;
+  onUpdateExamConfig: (config: { questionCount: number, timeLimit: number }) => void;
   onClearProgress: () => void;
 }
 
@@ -108,28 +108,25 @@ export default function SettingsModal({
             </div>
           </section>
 
-          {/* Data Management Section */}
-          <section className="space-y-4">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">数据管理</h4>
+          <div className="pt-6 border-t border-gray-100">
+            <h4 className="font-bold text-gray-900 mb-4 flex items-center">
+              <Trash2 size={18} className="mr-2 text-red-500" />
+              数据管理
+            </h4>
             
             <button
               onClick={() => {
-                if (confirm('确认清空所有练习进度吗？此操作不可撤销。')) {
-                  onClearProgress();
-                  onClose();
-                }
+                onClearProgress();
+                onClose();
               }}
-              className="w-full flex items-center justify-between p-4 rounded-2xl border-2 border-red-50 hover:bg-red-50 text-red-600 transition-all group"
+              className="w-full py-3 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-medium transition-colors flex items-center justify-center border border-red-100"
             >
-              <div className="flex items-center space-x-3">
-                <Trash2 size={20} className="text-red-400 group-hover:text-red-600 transition-colors" />
-                <div className="text-left">
-                  <div className="text-sm font-bold">清空练习进度</div>
-                  <div className="text-xs opacity-60">重置所有已做题目的记录</div>
-                </div>
-              </div>
+              清空所有进度记录
             </button>
-          </section>
+            <p className="text-xs text-gray-400 mt-2 text-center">
+              注意：这将清除所有练习模式的答题记录，无法恢复。
+            </p>
+          </div>
         </div>
 
         {/* Footer */}
