@@ -75,6 +75,10 @@ junior-it-quiz/
 - **管理功能**：在开发模式 (`npm run dev`) 下，访问 `/admin` 可以图形化地添加、修改和删除题目。
 - **生产环境**：在 Vercel 等平台部署时，文件系统通常是只读的，因此管理功能仅用于本地开发和数据维护。
 
+## 📄 开源协议
+
+本项目基于 [MIT 协议](LICENSE) 开源。
+
 ## 🤝 致谢与版权
 
 本项目重构自 **lanxin140513** 的 [cwezczbxxjslx](https://github.com/lanxin140513/cwezczbxxjslx) 仓库。

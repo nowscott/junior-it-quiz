@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, GraduationCap, Infinity as InfinityIcon, Lightbulb, ChevronRight } from 'lucide-react';
+import { BookOpen, GraduationCap, Infinity as InfinityIcon, Sparkles, ChevronRight, RefreshCw } from 'lucide-react';
+import { computerTrivia } from '@/data/trivia';
 
 interface WelcomePageProps {
   onStartPractice: () => void;
@@ -7,27 +8,27 @@ interface WelcomePageProps {
   onStartInfinite: () => void;
 }
 
-const TIPS = [
-  "每天坚持练习 20 题，轻松掌握信息技术知识点！",
-  "错题是最好的老师，记得多查看错题回顾哦。",
-  "模拟考试能帮助你适应真实考试的时间压力。",
-  "善用无尽模式，碎片时间也能刷几道题。",
-  "遇到不懂的题目，仔细阅读解析是关键。",
-  "定期复习已做过的题目，温故而知新。",
-  "保持良好的心态，考试时不要紧张。",
-  "理解比死记硬背更重要，尝试弄懂背后的原理。"
-];
-
 export default function WelcomePage({
   onStartPractice,
   onStartExam,
   onStartInfinite
 }: WelcomePageProps) {
   const [tip, setTip] = useState('');
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // 随机选择一条奇闻异事
+  const randomizeTip = () => {
+    setIsAnimating(true);
+    // 简单的淡出淡入效果
+    setTimeout(() => {
+      const randomIndex = Math.floor(Math.random() * computerTrivia.length);
+      setTip(computerTrivia[randomIndex]);
+      setIsAnimating(false);
+    }, 200);
+  };
 
   useEffect(() => {
-    // 随机选择一条小贴士
-    setTip(TIPS[Math.floor(Math.random() * TIPS.length)]);
+    randomizeTip();
   }, []);
 
   return (
@@ -108,14 +109,31 @@ export default function WelcomePage({
         </button>
       </div>
 
-      {/* Tip Card */}
-      <div className="w-full max-w-2xl bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-start gap-4 shadow-sm">
-        <div className="p-2 bg-orange-100 rounded-lg shrink-0">
-          <Lightbulb size={20} className="text-orange-600" />
+      {/* Trivia Card */}
+      <div className="w-full max-w-2xl bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+        {/* Decorative Background Icon */}
+        <div className="absolute -right-6 -bottom-6 opacity-5 rotate-12 pointer-events-none">
+          <Sparkles size={120} />
         </div>
-        <div>
-          <h4 className="text-sm font-bold text-orange-800 mb-1">复习小贴士</h4>
-          <p className="text-sm text-orange-700/80 leading-relaxed">
+        
+        <div className="p-2.5 bg-white rounded-xl shadow-sm shrink-0 z-10">
+          <Sparkles size={22} className="text-indigo-600" />
+        </div>
+        <div className="flex-1 z-10">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="text-sm font-bold text-indigo-900 flex items-center gap-2">
+              科技趣闻
+              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-[10px] rounded-full font-medium">冷知识</span>
+            </h4>
+            <button 
+              onClick={randomizeTip}
+              className="p-1.5 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
+              title="换一个"
+            >
+              <RefreshCw size={14} />
+            </button>
+          </div>
+          <p className={`text-sm text-indigo-800/80 leading-relaxed transition-opacity duration-200 ${isAnimating ? 'opacity-0' : 'opacity-100'}`}>
             {tip}
           </p>
         </div>
