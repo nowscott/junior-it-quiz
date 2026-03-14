@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, CheckCircle2, Circle, XCircle } from 'lucide-react';
+import { X, CheckCircle2, XCircle } from 'lucide-react';
 import { type Question } from '@/data/questions';
 import clsx from 'clsx';
 

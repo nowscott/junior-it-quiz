@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, GraduationCap, Infinity as InfinityIcon, Sparkles, ChevronRight, RefreshCw } from 'lucide-react';
+import { BookOpen, GraduationCap, Infinity as InfinityIcon, Sparkles, ChevronRight, RefreshCw, Github } from 'lucide-react';
 import { computerTrivia } from '@/data/trivia';
 
 interface WelcomePageProps {
@@ -28,7 +28,11 @@ export default function WelcomePage({
   };
 
   useEffect(() => {
-    randomizeTip();
+    // 使用 setTimeout 将状态更新推迟到下一个事件循环，避免“在 Effect 中同步调用 setState”的警告
+    const timer = setTimeout(() => {
+      randomizeTip();
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -138,6 +142,20 @@ export default function WelcomePage({
           </p>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-12 text-center text-gray-400 text-sm animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+        <p className="mb-2">© {new Date().getFullYear()} nowscott. All rights reserved.</p>
+        <a 
+          href="https://github.com/nowscott/junior-it-quiz" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors"
+        >
+          <Github size={14} />
+          <span>Open Source on GitHub</span>
+        </a>
+      </footer>
     </div>
   );
 }

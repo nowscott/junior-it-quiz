@@ -1,4 +1,4 @@
-import { X, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -19,7 +19,7 @@ export default function ConfirmationModal({
   message,
   confirmText = '确认',
   cancelText = '取消',
-  variant = 'warning'
+  // variant = 'info' // Remove unused variant prop usage if not needed
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
 

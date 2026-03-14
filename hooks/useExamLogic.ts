@@ -20,7 +20,7 @@ const decodeSeed = (encoded: string): { seed: number, count: number, time: numbe
       };
     }
     return null;
-  } catch (e) {
+  } catch {
     return null;
   }
 };
@@ -32,7 +32,7 @@ export function useExamLogic(
   const {
     currentModuleId, mode, currentQuestionIndex, userAnswers,
     examQuestions, infiniteQuestions, examSubmitted, showResultCard,
-    examState, examConfig, timeLeft, infinitePool, notification
+    examState, examConfig, timeLeft, infinitePool
   } = state;
 
   const {
@@ -40,8 +40,7 @@ export function useExamLogic(
     setExamQuestions, setInfiniteQuestions, setSidebarOpen, setExamSubmitted,
     setShowResultCard, setExamState, setExitConfirmOpen, setSubmitConfirmOpen,
     setClearConfirmOpen, setExamSessionId, setExamSeedString, setExamConfig,
-    setTimeLeft, setInfinitePool, setNotification, setIsSettingsModalOpen,
-    setSidebarCollapsed, setIsProgressModalOpen
+    setTimeLeft, setInfinitePool, setNotification, setIsSettingsModalOpen
   } = actions;
 
   // Notification helpers
@@ -151,8 +150,8 @@ export function useExamLogic(
              throw new Error('Invalid seed format');
           }
         }
-      } catch (e) {
-        console.error('Failed to parse seed', e);
+      } catch {
+        console.error('种子解析失败');
         showNotification('无效的种子', '输入的种子格式不正确或已损坏。请检查后重试，或直接点击“开始答题”生成新试卷。', 'error');
         return;
       }
@@ -196,13 +195,13 @@ export function useExamLogic(
     setSubmitConfirmOpen(false);
   }, [setExamSubmitted, setExamState, setShowResultCard, setCurrentQuestionIndex, setSubmitConfirmOpen]);
 
-  const submitExam = (auto = false) => {
+  const submitExam = useCallback((auto = false) => {
     if (!auto) {
       setSubmitConfirmOpen(true);
       return;
     }
     performSubmit();
-  };
+  }, [setSubmitConfirmOpen, performSubmit]);
 
   // Timer logic
   useEffect(() => {
@@ -219,7 +218,7 @@ export function useExamLogic(
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isExamActive, timeLeft]);
+  }, [isExamActive, timeLeft, setTimeLeft, submitExam]);
 
   // Infinite mode logic
   const startInfinite = () => {
@@ -235,7 +234,8 @@ export function useExamLogic(
       const allQuestions = getAllQuestions();
       if (allQuestions.length > 0) {
         const firstQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
-        setInfiniteQuestions([{ ...firstQ, id: 1 }]);
+        // id is already a UUID string
+        setInfiniteQuestions([{ ...firstQ }]);
       }
     });
   };
@@ -245,14 +245,15 @@ export function useExamLogic(
       const pool = getAllQuestions();
       setInfinitePool(pool.sort(() => Math.random() - 0.5));
     }
-  }, [mode, infinitePool.length, getAllQuestions]);
+  }, [mode, infinitePool.length, getAllQuestions, setInfinitePool]);
 
   const handleNextQuestion = () => {
     if (mode === 'infinite') {
       if (infinitePool.length > 0) {
         const nextQ = infinitePool[0];
         setInfinitePool(prev => prev.slice(1));
-        setInfiniteQuestions(prev => [...prev, { ...nextQ, id: prev.length + 1 }]);
+        // Use existing UUID, do not overwrite with number
+        setInfiniteQuestions(prev => [...prev, { ...nextQ }]);
         setCurrentQuestionIndex(prev => prev + 1);
         
         if (infinitePool.length <= 1) {

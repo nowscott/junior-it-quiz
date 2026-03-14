@@ -143,13 +143,13 @@ export default function Sidebar({
                 !isCollapsed && "mr-3"
               )} 
             />
-            {!isCollapsed && <span className="flex-1 text-left">主页</span>}
+            {!isCollapsed && <span className="flex-1 text-left whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">主页</span>}
           </button>
 
           {/* Modules Section */}
           <div className="space-y-2">
             {!isCollapsed && (
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-3">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-3 whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">
                 基础练习
               </h3>
             )}
@@ -180,11 +180,11 @@ export default function Sidebar({
                         !isCollapsed && "mr-3"
                       )} 
                     />
-                    {!isCollapsed && <span className="flex-1 text-left truncate">{data.title}</span>}
-                    
-                    {!isCollapsed && isActive && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ml-2" />
-                    )}
+                    {!isCollapsed && <span className="flex-1 text-left whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">{data.title}</span>}
+                  
+                  {!isCollapsed && isActive && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-600 ml-2" />
+                  )}
                   </button>
                 );
               })}
@@ -194,7 +194,7 @@ export default function Sidebar({
           {/* Exam Section */}
           <div className="space-y-2">
             {!isCollapsed && (
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-3">
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider px-3 mb-3 whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">
                 模拟测试
               </h3>
             )}
@@ -219,7 +219,7 @@ export default function Sidebar({
                     !isCollapsed && "mr-3"
                   )} 
                 />
-                {!isCollapsed && <span className="flex-1 text-left">随机综合考试</span>}
+                {!isCollapsed && <span className="flex-1 text-left whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">随机综合考试</span>}
               </button>
 
               <button
@@ -241,7 +241,7 @@ export default function Sidebar({
                     !isCollapsed && "mr-3"
                   )} 
                 />
-                {!isCollapsed && <span className="flex-1 text-left">随机无尽模式</span>}
+                {!isCollapsed && <span className="flex-1 text-left whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">随机无尽模式</span>}
               </button>
             </div>
           </div>
@@ -256,8 +256,14 @@ export default function Sidebar({
                 isCollapsed && "justify-center"
               )}
             >
-              <Settings size={18} className="text-gray-400 group-hover:text-gray-500 mr-3" />
-              {!isCollapsed && <span className="flex-1 text-left">设置</span>}
+              <Settings 
+                size={18} 
+                className={clsx(
+                  "text-gray-400 group-hover:text-gray-500 transition-colors",
+                  !isCollapsed && "mr-3"
+                )} 
+              />
+              {!isCollapsed && <span className="flex-1 text-left whitespace-nowrap overflow-hidden transition-all duration-300 opacity-100">设置</span>}
             </button>
           </div>
         </nav>

@@ -57,26 +57,29 @@ export function useQuizState() {
 
   // Load saved state
   useEffect(() => {
-    const savedProgress = localStorage.getItem(PROGRESS_STORAGE_KEY);
-    if (savedProgress) {
-      try {
-        const parsed = JSON.parse(savedProgress);
-        setUserAnswers(parsed.answers || {});
-        if (parsed.lastModuleId) setCurrentModuleId(parsed.lastModuleId);
-        if (parsed.lastIndex !== undefined) setCurrentQuestionIndex(parsed.lastIndex);
-      } catch (e) {
-        console.error('Failed to parse saved progress', e);
+    const timer = setTimeout(() => {
+      const savedProgress = localStorage.getItem(PROGRESS_STORAGE_KEY);
+      if (savedProgress) {
+        try {
+          const parsed = JSON.parse(savedProgress);
+          setUserAnswers(parsed.answers || {});
+          if (parsed.lastModuleId) setCurrentModuleId(parsed.lastModuleId);
+          if (parsed.lastIndex !== undefined) setCurrentQuestionIndex(parsed.lastIndex);
+        } catch {
+          console.error('解析保存的进度失败');
+        }
       }
-    }
 
-    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (savedSettings) {
-      try {
-        setExamConfig(JSON.parse(savedSettings));
-      } catch (e) {
-        console.error('Failed to parse saved settings', e);
+      const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (savedSettings) {
+        try {
+          setExamConfig(JSON.parse(savedSettings));
+        } catch {
+          console.error('解析保存的设置失败');
+        }
       }
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Save state effects

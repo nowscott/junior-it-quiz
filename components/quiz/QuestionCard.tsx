@@ -3,6 +3,7 @@ import { CheckCircle, XCircle, Info, Maximize2 } from 'lucide-react';
 import clsx from 'clsx';
 import { type Question } from '@/data/questions';
 import Image from 'next/image';
+import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 
 interface QuestionCardProps {
   question: Question;
@@ -11,6 +12,7 @@ interface QuestionCardProps {
   showResult: boolean; // 是否显示正确/错误状态
   mode: 'practice' | 'exam' | 'infinite';
   sessionId?: number; // 考试场次 ID，用于生成动态随机种子
+  questionNumber?: number; // 新增：用于显示当前题目在列表中的序号
 }
 
 export default function QuestionCard({
@@ -19,7 +21,8 @@ export default function QuestionCard({
   onSelectAnswer,
   showResult,
   mode,
-  sessionId = 0 // 默认为 0
+  sessionId = 0, // 默认为 0
+  questionNumber
 }: QuestionCardProps) {
   // 维护一个打乱后的选项索引数组
   // 使用基于 question.id 的伪随机数生成器，确保服务端和客户端渲染一致，解决 Hydration Mismatch
@@ -38,7 +41,16 @@ export default function QuestionCard({
     
     // 简单的线性同余生成器 (LCG)
     // 种子基于 question.id，确保同一道题的随机顺序是固定的 (SSR 兼容)
-    let seed = question.id + (sessionId || 0); 
+    
+    // Convert string UUID to numeric seed hash
+    let idHash = 0;
+    const idStr = String(question.id);
+    for (let i = 0; i < idStr.length; i++) {
+      idHash = ((idHash << 5) - idHash) + idStr.charCodeAt(i);
+      idHash |= 0; // Convert to 32bit integer
+    }
+    
+    let seed = Math.abs(idHash) + (sessionId || 0); 
     const random = () => {
       seed = (seed * 9301 + 49297) % 233280;
       return seed / 233280;
@@ -50,6 +62,7 @@ export default function QuestionCard({
       [indices[i], indices[j]] = [indices[j], indices[i]];
     }
     return indices;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question.id, question.options.length, sessionId]); 
   
   // 客户端二次打乱（实现“重温时选项不同”）
@@ -60,13 +73,20 @@ export default function QuestionCard({
     // 用户需求是：重温考试时，题目一样，但选项顺序要变。
     // 这意味着选项顺序不能依赖 sessionId。
     
-    const indices = question.options.map((_, i) => i);
-    // 使用真随机 (Math.random)
-    for (let i = indices.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [indices[i], indices[j]] = [indices[j], indices[i]];
-    }
-    setClientShuffledIndices(indices);
+    // 使用 setTimeout 避免在 Effect 中同步调用 setState，虽然在这个场景下通常不会导致严重问题
+    // 但为了遵循 React 规则，可以使用 requestAnimationFrame 或 setTimeout
+    const timeoutId = setTimeout(() => {
+      const indices = question.options.map((_, i) => i);
+      // 使用真随机 (Math.random)
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+      setClientShuffledIndices(indices);
+    }, 0);
+    
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question.id, sessionId]); // 依赖 sessionId 变化（例如重新开始考试）时重新打乱
 
   // 最终使用的索引：优先使用客户端随机后的，否则使用确定性的（SSR/首次渲染）
@@ -100,7 +120,7 @@ export default function QuestionCard({
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-3">
           <span className="h-10 w-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg shadow-sm">
-            {mode === 'infinite' ? '∞' : (question.examQuestionId || question.id)}
+            {mode === 'infinite' ? '∞' : (question.examQuestionId || questionNumber || 'Q')}
           </span>
           {question.sourceModuleName && (
             <span className="px-3 py-1 rounded-full bg-gray-50 text-xs font-medium text-gray-500 border border-gray-100">
@@ -194,12 +214,10 @@ export default function QuestionCard({
               <Info className="text-blue-500" size={20} />
               <h4 className="font-bold text-blue-900">题目解析</h4>
             </div>
-            <p className="text-blue-800/80 leading-relaxed text-sm md:text-base">
-              正确答案：<span className="font-bold">{question.options[question.correctAnswer]}</span>
-              <br/>
-              <br/>
-              {question.explanation}
-            </p>
+            <MarkdownRenderer
+              className="prose prose-sm md:prose-base max-w-none text-blue-800/80"
+              content={`**正确答案：** ${question.options[question.correctAnswer]}\n\n${question.explanation || ''}`}
+            />
             {question.explanationImage && (
               <div className="mt-4 rounded-xl overflow-hidden border border-blue-200/50">
                  <Image 

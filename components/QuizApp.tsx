@@ -32,13 +32,25 @@ export default function QuizApp() {
   } = actions;
 
   const {
-    handleModuleChange, prepareExam, startExam, startInfinite,
-    submitExam, performSubmit, handleAnswer, handleNextQuestion,
-    handlePrevQuestion, handleExitExam, confirmExitExam,
-    handleClearProgress, confirmClearProgress, checkNavigation,
-    handleBackToResult, restartExam, reviewWrong,
-    handleOpenSettings, showNotification, closeNotification,
-    handleGoHome
+    handleGoHome,
+    handleModuleChange,
+    prepareExam,
+    startExam,
+    startInfinite,
+    submitExam,
+    performSubmit,
+    handleAnswer,
+    handleNextQuestion,
+    handlePrevQuestion,
+    handleExitExam,
+    confirmExitExam,
+    handleClearProgress,
+    confirmClearProgress,
+    handleBackToResult,
+    restartExam,
+    reviewWrong,
+    handleOpenSettings,
+    closeNotification
   } = handlers;
 
   const {

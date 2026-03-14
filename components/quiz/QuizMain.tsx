@@ -95,6 +95,18 @@ export default function QuizMain({
     );
   }
 
+  const handleNext = () => {
+    if (mode === 'infinite') {
+      onNextQuestion();
+    } else {
+      if (currentQuestionIndex < (currentModuleData?.questions.length || 1) - 1) {
+        onNextQuestion();
+      }
+    }
+  };
+
+  const isLastQuestion = mode !== 'infinite' && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1;
+
   return (
     <div className="space-y-6">
       <QuestionCard 
@@ -105,6 +117,7 @@ export default function QuizMain({
         showResult={showResult}
         mode={mode}
         sessionId={examSessionId}
+        questionNumber={currentQuestionIndex + 1}
       />
       
       {/* 题目下方的导航按钮 */}
@@ -124,7 +137,7 @@ export default function QuizMain({
           >
             <ArrowLeft size={18} className="mr-2" /> 返回成绩单
           </button>
-        ) : mode === 'exam' && !examSubmitted && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? (
+        ) : mode === 'exam' && !examSubmitted && isLastQuestion ? (
           <button 
             onClick={onSubmitExam}
             className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-purple-600 text-white hover:bg-purple-700 shadow-lg shadow-purple-200 flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
@@ -133,11 +146,11 @@ export default function QuizMain({
           </button>
         ) : (
           <button 
-            onClick={onNextQuestion}
-            disabled={mode !== 'infinite' && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1}
+            onClick={handleNext}
+            disabled={isLastQuestion}
             className="flex-1 max-w-[200px] px-6 py-3 rounded-2xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center transition-all hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
           >
-            {mode === 'infinite' ? '下一题' : (currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1 ? '已完成' : '下一题')}
+            {mode === 'infinite' ? '下一题' : (isLastQuestion ? '已完成' : '下一题')}
             <ChevronRight size={18} className="ml-1" />
           </button>
         )}
