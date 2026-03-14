@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, GraduationCap, Infinity as InfinityIcon, Sparkles, ChevronRight, RefreshCw, Github } from 'lucide-react';
 import { computerTrivia } from '@/data/trivia';
+import pkg from '@/package.json';
 
 interface WelcomePageProps {
   onStartPractice: () => void;
@@ -146,15 +147,19 @@ export default function WelcomePage({
       {/* Footer */}
       <footer className="mt-12 text-center text-gray-400 text-sm animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
         <p className="mb-2">© {new Date().getFullYear()} nowscott. All rights reserved.</p>
-        <a 
-          href="https://github.com/nowscott/junior-it-quiz" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors"
-        >
-          <Github size={14} />
-          <span>Open Source on GitHub</span>
-        </a>
+        <div className="flex items-center justify-center gap-4">
+          <a 
+            href="https://github.com/nowscott/junior-it-quiz" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 hover:text-gray-600 transition-colors"
+          >
+            <Github size={14} />
+            <span>Open Source</span>
+          </a>
+          <span className="text-gray-300">|</span>
+          <span className="text-gray-400 font-mono text-xs">v{pkg.version}</span>
+        </div>
       </footer>
     </div>
   );
