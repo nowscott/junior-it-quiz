@@ -6,20 +6,24 @@ import ConfirmationModal from '@/components/modals/ConfirmationModal'; // 引入
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import QuestionList from '@/components/admin/QuestionList';
 import EditQuestionModal from '@/components/admin/EditQuestionModal';
+import AdminRightPanel from '@/components/admin/AdminRightPanel';
 
 export default function AdminPage() {
   const [data, setData] = useState<QuestionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [isDev, setIsDev] = useState(true);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null); // 新增：删除确认状态
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateStatus, setGenerateStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialOrdersRef = useRef<Record<string, string[]>>({});
+  const [defaultAscNext, setDefaultAscNext] = useState(true);
+  const [explainAscNext, setExplainAscNext] = useState(true);
 
 
   // Check environment
@@ -37,11 +41,14 @@ export default function AdminPage() {
         if (Object.keys(data).length > 0) {
           setSelectedModuleId(Object.keys(data)[0]);
         }
+        // snapshot original order for each module
+        (Object.entries(data) as [string, QuestionData[string]][]).forEach(([mid, mod]) => {
+          initialOrdersRef.current[mid] = mod.questions.map((q: Question) => q.id);
+        });
         setLoading(false);
       })
       .catch(err => {
         console.error('加载数据失败:', err);
-        setMessage({ type: 'error', text: '加载数据失败，请刷新重试' });
         setLoading(false);
       });
   }, []);
@@ -84,7 +91,7 @@ export default function AdminPage() {
 
   const handleSaveAll = async () => {
     if (!data) return;
-    setSaving(true);
+    setSaveStatus('saving');
     try {
       const res = await fetch('/api/questions', {
         method: 'POST',
@@ -93,13 +100,11 @@ export default function AdminPage() {
       });
       
       if (!res.ok) throw new Error('保存失败');
-      
-      setMessage({ type: 'success', text: '保存成功！' });
-      setTimeout(() => setMessage(null), 3000);
+      setSaveStatus('success');
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), 1500);
     } catch {
-      setMessage({ type: 'error', text: '保存失败，请检查控制台' });
-    } finally {
-      setSaving(false);
+      setSaveStatus('error');
     }
   };
 
@@ -139,6 +144,10 @@ export default function AdminPage() {
         questions: newQuestions
       }
     });
+    // update snapshot
+    if (initialOrdersRef.current[selectedModuleId]) {
+      initialOrdersRef.current[selectedModuleId] = initialOrdersRef.current[selectedModuleId].filter(id => id !== deleteConfirmId);
+    }
     setDeleteConfirmId(null);
   };
 
@@ -164,11 +173,145 @@ export default function AdminPage() {
         questions: [...currentQuestions, newQuestion]
       }
     });
+    // update snapshot for default order
+    if (!initialOrdersRef.current[selectedModuleId]) {
+      initialOrdersRef.current[selectedModuleId] = [];
+    }
+    initialOrdersRef.current[selectedModuleId].push(newId);
     
     // Automatically open edit modal for new question
     setEditingQuestion(newQuestion);
     setIsEditModalOpen(true);
     setGenerateStatus('idle');
+  };
+
+  const handleCreateModule = () => {
+    if (!data) return;
+    const newId = crypto.randomUUID();
+    const index = Object.keys(data).length + 1;
+    const newModuleTitle = `新模块${index}`;
+    const newModule: QuestionData[string] = {
+      title: newModuleTitle,
+      questions: []
+    };
+    setData({
+      ...data,
+      [newId]: newModule
+    });
+    initialOrdersRef.current[newId] = [];
+    setSelectedModuleId(newId);
+    setEditingQuestion(null);
+    setIsEditModalOpen(false);
+    setGenerateStatus('idle');
+  };
+
+  const handleRenameModule = (id: string, newTitle: string) => {
+    if (!data || !data[id]) return;
+    setData({
+      ...data,
+      [id]: {
+        ...data[id],
+        title: newTitle
+      }
+    });
+  };
+
+  const handleSortExplanationAsc = () => {
+    if (!data || !selectedModuleId) return;
+    const sorted = [...data[selectedModuleId].questions].sort((a, b) => {
+      const la = (a.explanation || '').length;
+      const lb = (b.explanation || '').length;
+      return la - lb;
+    });
+    setData({
+      ...data,
+      [selectedModuleId]: {
+        ...data[selectedModuleId],
+        questions: sorted
+      }
+    });
+  };
+  const handleSortExplanationDesc = () => {
+    if (!data || !selectedModuleId) return;
+    const sorted = [...data[selectedModuleId].questions].sort((a, b) => {
+      const la = (a.explanation || '').length;
+      const lb = (b.explanation || '').length;
+      return lb - la;
+    });
+    setData({
+      ...data,
+      [selectedModuleId]: {
+        ...data[selectedModuleId],
+        questions: sorted
+      }
+    });
+  };
+  const handleSortDefault = () => {
+    if (!data || !selectedModuleId) return;
+    const snap = initialOrdersRef.current[selectedModuleId];
+    if (!snap) return;
+    const map = new Map(data[selectedModuleId].questions.map(q => [q.id, q]));
+    const restored = snap.map(id => map.get(id)).filter(Boolean) as Question[];
+    // append any new ids not in snapshot (shouldn't happen, but safe)
+    const extra = data[selectedModuleId].questions.filter(q => !snap.includes(q.id));
+    const merged = [...restored, ...extra];
+    setData({
+      ...data,
+      [selectedModuleId]: {
+        ...data[selectedModuleId],
+        questions: merged
+      }
+    });
+  };
+  const handleSortDefaultDesc = () => {
+    if (!data || !selectedModuleId) return;
+    const snap = initialOrdersRef.current[selectedModuleId];
+    if (!snap) return;
+    const map = new Map(data[selectedModuleId].questions.map(q => [q.id, q]));
+    const restored = [...snap].reverse().map(id => map.get(id)).filter(Boolean) as Question[];
+    const extra = data[selectedModuleId].questions.filter(q => !snap.includes(q.id)).reverse();
+    const merged = [...restored, ...extra];
+    setData({
+      ...data,
+      [selectedModuleId]: {
+        ...data[selectedModuleId],
+        questions: merged
+      }
+    });
+  };
+
+  const handleToggleDefaultSort = () => {
+    if (defaultAscNext) {
+      handleSortDefault();
+    } else {
+      handleSortDefaultDesc();
+    }
+    setDefaultAscNext(!defaultAscNext);
+  };
+
+  const handleToggleExplainSort = () => {
+    if (explainAscNext) {
+      handleSortExplanationAsc();
+    } else {
+      handleSortExplanationDesc();
+    }
+    setExplainAscNext(!explainAscNext);
+  };
+
+  const handleShuffle = () => {
+    if (!data || !selectedModuleId) return;
+    const arr = [...data[selectedModuleId].questions];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    setData({
+      ...data,
+      [selectedModuleId]: {
+        ...data[selectedModuleId],
+        questions: arr
+      }
+    });
   };
 
   useEffect(() => {
@@ -189,14 +332,13 @@ export default function AdminPage() {
         data={data}
         selectedModuleId={selectedModuleId}
         onSelect={setSelectedModuleId}
-        onSaveAll={handleSaveAll}
-        saving={saving}
         isDev={isDev}
-        message={message}
+        onCreateModule={handleCreateModule}
+        onRenameModule={handleRenameModule}
       />
 
       {/* Main Content - Questions */}
-      <div className="flex-1 ml-64 p-8 overflow-y-auto">
+      <div className="flex-1 ml-64 mr-72 p-8 overflow-y-auto">
         {selectedModuleId && (
           <QuestionList
             module={data[selectedModuleId]}
@@ -206,6 +348,18 @@ export default function AdminPage() {
           />
         )}
       </div>
+
+      <AdminRightPanel
+        selectedModule={selectedModuleId ? data[selectedModuleId] : null}
+        onSaveAll={handleSaveAll}
+        isDev={isDev}
+        saveStatus={saveStatus}
+        defaultAscNext={defaultAscNext}
+        explainAscNext={explainAscNext}
+        onToggleDefaultSort={handleToggleDefaultSort}
+        onToggleExplainSort={handleToggleExplainSort}
+        onShuffle={handleShuffle}
+      />
 
       {/* Edit Modal */}
       <EditQuestionModal
