@@ -237,19 +237,7 @@ export default function Sidebar({
         </nav>
 
         {/* Footer */}
-        {!isCollapsed && (
-          <div className="p-4 border-t border-gray-50 bg-gray-50/50">
-            <div className="bg-blue-50 rounded-xl p-3">
-              <div className="flex items-center space-x-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                <span className="text-xs font-bold text-blue-700">复习小贴士</span>
-              </div>
-              <p className="text-xs text-blue-600/80 leading-relaxed">
-                每天坚持练习 20 题，轻松掌握信息技术知识点！
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Footer 区域已移除复习小贴士，迁移至 WelcomePage */}
       </div>
     </aside>
   );

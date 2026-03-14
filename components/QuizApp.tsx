@@ -13,8 +13,9 @@ import ProgressModal from './ProgressModal';
 import SettingsModal from './SettingsModal';
 import ExamIntro from './ExamIntro';
 import ConfirmationModal from './ConfirmationModal';
+import WelcomePage from './WelcomePage';
 
-type AppMode = 'practice' | 'exam' | 'infinite';
+type AppMode = 'welcome' | 'practice' | 'exam' | 'infinite';
 type ExamState = 'intro' | 'active' | 'result';
 
 const PROGRESS_STORAGE_KEY = 'quiz_progress_v1';
@@ -48,8 +49,8 @@ export default function QuizApp() {
   // 动态获取第一个模块 ID 作为默认值
   const defaultModuleId = Object.keys(questionData)[0] || 'module1';
   
-  const [currentModuleId, setCurrentModuleId] = useState<string>(defaultModuleId);
-  const [mode, setMode] = useState<AppMode>('practice');
+  const [currentModuleId, setCurrentModuleId] = useState<string>(''); // 初始不选中任何模块
+  const [mode, setMode] = useState<AppMode>('welcome');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, Record<number, number>>>({});
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
@@ -294,25 +295,40 @@ export default function QuizApp() {
     setExitConfirmOpen(false);
   };
 
+  // 统一的导航拦截检查
+  const checkNavigation = (action: () => void) => {
+    if (isExamActive) {
+      if (window.confirm('正在考试中，离开将丢失当前进度，确认离开？')) {
+        action();
+      }
+    } else {
+      action();
+    }
+  };
+
   // 切换模块
   const handleModuleChange = (moduleId: string) => {
-    setMode('practice');
-    setCurrentModuleId(moduleId);
-    setCurrentQuestionIndex(0);
-    setSidebarOpen(false);
-    setExamSubmitted(false);
-    setShowResultCard(false);
+    checkNavigation(() => {
+      setMode('practice');
+      setCurrentModuleId(moduleId);
+      setCurrentQuestionIndex(0);
+      setSidebarOpen(false);
+      setExamSubmitted(false);
+      setShowResultCard(false);
+    });
   };
 
   // 准备进入考试模式（显示介绍页）
   const prepareExam = () => {
-    setMode('exam');
-    setExamState('intro');
-    setSidebarOpen(false);
-    setShowResultCard(false);
-    setExamSubmitted(false);
-    // 清空可能存在的上次考试种子输入
-    // 这里不需要做，因为 ExamIntro 组件内部维护了 seedInput 状态
+    checkNavigation(() => {
+      setMode('exam');
+      setExamState('intro');
+      setSidebarOpen(false);
+      setShowResultCard(false);
+      setExamSubmitted(false);
+      // 清空可能存在的上次考试种子输入
+      // 这里不需要做，因为 ExamIntro 组件内部维护了 seedInput 状态
+    });
   };
 
   // 正式开始考试
@@ -390,23 +406,25 @@ export default function QuizApp() {
 
   // 开始无尽模式
   const startInfinite = () => {
-    setMode('infinite');
-    // 生成新的场次 ID
-    setExamSessionId(Date.now());
-    
-    // 初始化第一题
-    setInfiniteQuestions([]);
-    setCurrentQuestionIndex(0);
-    setUserAnswers(prev => ({ ...prev, 'infinite': {} }));
-    setSidebarOpen(false);
-    setShowResultCard(false);
-    
-    // 手动触发第一题生成
-    const allQuestions = getAllQuestions();
-    if (allQuestions.length > 0) {
-      const firstQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
-      setInfiniteQuestions([{ ...firstQ, id: 1 }]);
-    }
+    checkNavigation(() => {
+      setMode('infinite');
+      // 生成新的场次 ID
+      setExamSessionId(Date.now());
+      
+      // 初始化第一题
+      setInfiniteQuestions([]);
+      setCurrentQuestionIndex(0);
+      setUserAnswers(prev => ({ ...prev, 'infinite': {} }));
+      setSidebarOpen(false);
+      setShowResultCard(false);
+      
+      // 手动触发第一题生成
+      const allQuestions = getAllQuestions();
+      if (allQuestions.length > 0) {
+        const firstQ = allQuestions[Math.floor(Math.random() * allQuestions.length)];
+        setInfiniteQuestions([{ ...firstQ, id: 1 }]);
+      }
+    });
   };
 
   // 打开设置
@@ -484,7 +502,7 @@ export default function QuizApp() {
       {!isExamActive && (
         <Sidebar 
           currentModuleId={currentModuleId}
-          mode={mode}
+          mode={mode === 'welcome' ? 'practice' : mode} // Sidebar 暂时不支持 welcome 模式，这里做个兼容
           onModuleChange={handleModuleChange}
           onStartExam={prepareExam}
           onStartInfinite={startInfinite}
@@ -493,13 +511,36 @@ export default function QuizApp() {
           onClose={() => setSidebarOpen(false)}
           isCollapsed={sidebarCollapsed}
           toggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          checkNavigation={(action) => action()} // 默认放行，因为 QuizApp 已经处理了显隐逻辑
+          checkNavigation={(action) => action()} // 默认放行
         />
       )}
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-gray-50/50">
-        {/* Header */}
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200/50 flex items-center justify-between px-6 md:px-8 z-10 sticky top-0">
+        {mode === 'welcome' ? (
+          <div className="flex-1 overflow-y-auto">
+            {/* Mobile Menu Button - 欢迎页也需要能打开侧边栏 */}
+            {!sidebarOpen && (
+              <button 
+                className="fixed top-4 left-4 z-50 p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-gray-200 md:hidden"
+                onClick={() => setSidebarOpen(true)}
+              >
+                <Menu size={20} />
+              </button>
+            )}
+            
+            <WelcomePage 
+              onStartPractice={() => {
+                // 默认开始第一个模块
+                handleModuleChange(defaultModuleId);
+              }}
+              onStartExam={prepareExam}
+              onStartInfinite={startInfinite}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 md:px-8 z-30 flex-shrink-0">
           <div className="ml-10 md:ml-0 flex items-center gap-4 overflow-hidden">
             <h2 className="text-lg font-bold text-gray-900 tracking-tight truncate">
               {currentModuleData?.title}
@@ -706,6 +747,8 @@ export default function QuizApp() {
             )}
           </div>
         </div>
+          </>
+        )}
       </main>
     </div>
   );
