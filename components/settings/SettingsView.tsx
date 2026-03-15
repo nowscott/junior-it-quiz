@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Settings2, ListOrdered, Clock, Save, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import ConfirmationModal from '@/components/modals/ConfirmationModal';
+import { useState, useEffect, useRef } from 'react';
+import { Settings2, ListOrdered, Clock, Save, X, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { SETTINGS_STORAGE_KEY } from '@/hooks/useQuizState';
 import clsx from 'clsx';
 
@@ -15,8 +14,14 @@ interface SettingsViewProps {
 export default function SettingsView({ isOpen, onClose, onClearProgress }: SettingsViewProps) {
   const [tempConfig, setTempConfig] = useState<{ questionCount: number; timeLimit: number }>({ questionCount: 30, timeLimit: 30 });
   const [saving, setSaving] = useState<'idle' | 'success'>('idle');
-  const [clearOpen, setClearOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // Long press logic for clearing data
+  const [isPressing, setIsPressing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [clearStatus, setClearStatus] = useState<'idle' | 'cleared'>('idle');
+  const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 使用 setTimeout 将状态更新推迟到下一个 tick，避免同步更新导致的 cascading renders
@@ -47,13 +52,13 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
   // Handle ESC key to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !clearOpen) {
+      if (e.key === 'Escape' && isOpen) {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, clearOpen]);
+  }, [isOpen, onClose]);
 
   const handleSave = () => {
     const normalized = {
@@ -70,9 +75,53 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
     }, 1200);
   };
 
-  const handleConfirmClear = () => {
-    onClearProgress();
-    setClearOpen(false);
+  const handlePressStart = () => {
+    if (clearStatus === 'cleared') return;
+    
+    setIsPressing(true);
+    setProgress(0);
+    
+    const duration = 1500; // 1.5s long press
+    const interval = 20; // update every 20ms
+    const step = 100 / (duration / interval);
+    
+    progressIntervalRef.current = setInterval(() => {
+      setProgress(prev => {
+        const next = prev + step;
+        if (next >= 100) {
+          clearInterval(progressIntervalRef.current!);
+          return 100;
+        }
+        return next;
+      });
+    }, interval);
+
+    pressTimerRef.current = setTimeout(() => {
+      onClearProgress();
+      setClearStatus('cleared');
+      setIsPressing(false);
+      setProgress(100);
+      
+      // Reset status after 2 seconds
+      setTimeout(() => {
+        setClearStatus('idle');
+        setProgress(0);
+      }, 2000);
+    }, duration);
+  };
+
+  const handlePressEnd = () => {
+    if (clearStatus === 'cleared') return;
+    
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    
+    setIsPressing(false);
+    setProgress(0);
   };
 
   if (!mounted) return null;
@@ -208,14 +257,43 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
                   </div>
                   <div>
                     <div className="text-sm font-bold text-gray-800">清空所有进度</div>
-                    <div className="text-xs text-red-400/80">此操作不可恢复，请谨慎操作</div>
+                    <div className="text-xs text-red-400/80">长按按钮以清空，此操作不可恢复</div>
                   </div>
                 </div>
                 <button
-                  onClick={() => setClearOpen(true)}
-                  className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-xl text-sm font-bold shadow-sm hover:bg-red-50 hover:border-red-300 transition-all active:scale-95"
+                  onMouseDown={handlePressStart}
+                  onMouseUp={handlePressEnd}
+                  onMouseLeave={handlePressEnd}
+                  onTouchStart={handlePressStart}
+                  onTouchEnd={handlePressEnd}
+                  className={clsx(
+                    "relative px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition-all overflow-hidden select-none",
+                    clearStatus === 'cleared' 
+                      ? "bg-green-500 text-white border border-green-600"
+                      : "bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 active:scale-95"
+                  )}
                 >
-                  立即清空
+                  {/* Progress background */}
+                  {isPressing && clearStatus !== 'cleared' && (
+                    <div 
+                      className="absolute inset-0 bg-red-100/50 z-0 transition-all duration-75 ease-linear"
+                      style={{ width: `${progress}%` }}
+                    />
+                  )}
+                  
+                  <div className="relative z-10 flex items-center gap-2">
+                    {clearStatus === 'cleared' ? (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>已清空</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 size={16} />
+                        <span>{isPressing ? '松开取消' : '长按清空'}</span>
+                      </>
+                    )}
+                  </div>
                 </button>
               </div>
             </section>
@@ -250,17 +328,6 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
           </div>
         </div>
       </div>
-
-      <ConfirmationModal
-        isOpen={clearOpen}
-        onClose={() => setClearOpen(false)}
-        onConfirm={handleConfirmClear}
-        title="清空进度"
-        message="确认清空所有进度？此操作无法撤销。"
-        confirmText="确认清空"
-        cancelText="取消"
-        variant="danger"
-      />
     </>
   );
 }
