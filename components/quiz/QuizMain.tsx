@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Question, ModuleData } from '@/data/questions';
 import { AppMode, ExamState, ExamConfig } from '@/hooks/useQuizState';
@@ -106,6 +107,32 @@ export default function QuizMain({
   };
 
   const isLastQuestion = mode !== 'infinite' && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1;
+
+  // 键盘快捷键支持：左右方向键切换题目
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 避免在输入框中触发
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === 'ArrowLeft') {
+        if (currentQuestionIndex > 0) {
+          onPrevQuestion();
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (mode === 'infinite') {
+          onNextQuestion();
+        } else {
+          // 非无尽模式下，如果是最后一题则不响应（因为需要提交）
+          if (currentQuestionIndex < (currentModuleData?.questions.length || 1) - 1) {
+            onNextQuestion();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentQuestionIndex, mode, currentModuleData, onPrevQuestion, onNextQuestion]);
 
   return (
     <div className="space-y-6">

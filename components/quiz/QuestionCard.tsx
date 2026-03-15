@@ -159,6 +159,30 @@ export default function QuestionCard({
     return 'default';
   };
 
+  // 键盘快捷键支持：数字键 1-4 选择选项
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 避免在输入框中触发
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const keyMap: { [key: string]: number } = {
+        '1': 0, '2': 1, '3': 2, '4': 3,
+        'NumPad1': 0, 'NumPad2': 1, 'NumPad3': 2, 'NumPad4': 3
+      };
+
+      if (keyMap[e.key] !== undefined) {
+        const index = keyMap[e.key];
+        // 确保选项存在（有些题目可能只有 2 或 3 个选项）
+        if (index < question.options.length) {
+          handleSelect(index);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSelect, question.options.length]);
+
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 md:p-10 transition-all duration-300 hover:shadow-md">
       {/* 题号与标签 */}
