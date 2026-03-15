@@ -61,16 +61,6 @@ export default function QuizApp() {
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
-      {/* Mobile Menu Button - 考试进行中不显示 */}
-      {!sidebarOpen && !isExamActive && (
-        <button 
-          className="fixed top-4 left-4 z-50 p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-gray-200 md:hidden"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <Menu size={20} />
-        </button>
-      )}
-
       {/* Sidebar - 考试进行中不显示 */}
       {!isExamActive && (
         <Sidebar 
@@ -96,38 +86,24 @@ export default function QuizApp() {
         <SettingsView 
           isOpen={isSettingsModalOpen} 
           onClose={() => setIsSettingsModalOpen(false)} 
+          onUpdateConfig={actions.setExamConfig}
           onClearProgress={() => {
             // 清除本地存储
             localStorage.removeItem('quiz_progress_v1');
             // 清除 React 状态
             actions.setUserAnswers({});
             actions.setCurrentQuestionIndex(0);
-            // 提示用户
-            actions.setNotification({
-              isOpen: true,
-              title: '清理完成',
-              message: '已清空所有进度',
-              type: 'success'
-            });
           }}
         />
         {mode === 'welcome' ? (
           <div className="flex-1 overflow-y-auto">
-            {!sidebarOpen && (
-              <button 
-                className="fixed top-4 left-4 z-50 p-2 bg-white/80 backdrop-blur-md rounded-xl shadow-sm border border-gray-200 md:hidden"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu size={20} />
-              </button>
-            )}
-            
             <WelcomePage 
               onStartPractice={() => {
                 handleModuleChange(defaultModuleId);
               }}
               onStartExam={prepareExam}
               onStartInfinite={startInfinite}
+              onOpenSidebar={() => setSidebarOpen(true)}
             />
           </div>
         ) : (
@@ -144,6 +120,7 @@ export default function QuizApp() {
               onExitExam={handleExitExam}
               onBackToResult={handleBackToResult}
               onOpenProgress={() => setIsProgressModalOpen(true)}
+              onOpenSidebar={() => setSidebarOpen(true)}
             />
 
             <ProgressModal 
@@ -190,8 +167,8 @@ export default function QuizApp() {
               variant={notification.type === 'error' ? 'danger' : notification.type === 'success' ? 'info' : 'warning'}
             />
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
-              <div className="max-w-3xl mx-auto pb-24">
+            <div className="flex-1 overflow-y-auto p-2 md:p-8 scroll-smooth">
+              <div className="max-w-3xl mx-auto pb-12 md:pb-24">
                 <QuizMain 
                   mode={mode}
                   examState={examState}

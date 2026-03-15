@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Settings2, ListOrdered, Clock, Save, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import ConfirmationModal from '@/components/modals/ConfirmationModal';
+import { useState, useEffect, useRef } from 'react';
+import { Settings2, ListOrdered, Clock, Save, X, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { SETTINGS_STORAGE_KEY } from '@/hooks/useQuizState';
 import clsx from 'clsx';
 
@@ -10,13 +9,20 @@ interface SettingsViewProps {
   isOpen: boolean;
   onClose: () => void;
   onClearProgress: () => void;
+  onUpdateConfig?: (config: { questionCount: number; timeLimit: number }) => void;
 }
 
-export default function SettingsView({ isOpen, onClose, onClearProgress }: SettingsViewProps) {
+export default function SettingsView({ isOpen, onClose, onClearProgress, onUpdateConfig }: SettingsViewProps) {
   const [tempConfig, setTempConfig] = useState<{ questionCount: number; timeLimit: number }>({ questionCount: 30, timeLimit: 30 });
   const [saving, setSaving] = useState<'idle' | 'success'>('idle');
-  const [clearOpen, setClearOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  // Long press logic for clearing data
+  const [isPressing, setIsPressing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [clearStatus, setClearStatus] = useState<'idle' | 'cleared'>('idle');
+  const pressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 使用 setTimeout 将状态更新推迟到下一个 tick，避免同步更新导致的 cascading renders
@@ -47,13 +53,13 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
   // Handle ESC key to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && !clearOpen) {
+      if (e.key === 'Escape' && isOpen) {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, clearOpen]);
+  }, [isOpen, onClose]);
 
   const handleSave = () => {
     const normalized = {
@@ -62,6 +68,9 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
     };
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(normalized));
     setTempConfig(normalized);
+    if (onUpdateConfig) {
+      onUpdateConfig(normalized);
+    }
     setSaving('success');
     setTimeout(() => {
       setSaving('idle');
@@ -70,9 +79,53 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
     }, 1200);
   };
 
-  const handleConfirmClear = () => {
-    onClearProgress();
-    setClearOpen(false);
+  const handlePressStart = () => {
+    if (clearStatus === 'cleared') return;
+    
+    setIsPressing(true);
+    setProgress(0);
+    
+    const duration = 1500; // 1.5s long press
+    const interval = 20; // update every 20ms
+    const step = 100 / (duration / interval);
+    
+    progressIntervalRef.current = setInterval(() => {
+      setProgress(prev => {
+        const next = prev + step;
+        if (next >= 100) {
+          clearInterval(progressIntervalRef.current!);
+          return 100;
+        }
+        return next;
+      });
+    }, interval);
+
+    pressTimerRef.current = setTimeout(() => {
+      onClearProgress();
+      setClearStatus('cleared');
+      setIsPressing(false);
+      setProgress(100);
+      
+      // Reset status after 2 seconds
+      setTimeout(() => {
+        setClearStatus('idle');
+        setProgress(0);
+      }, 2000);
+    }, duration);
+  };
+
+  const handlePressEnd = () => {
+    if (clearStatus === 'cleared') return;
+    
+    if (pressTimerRef.current) {
+      clearTimeout(pressTimerRef.current);
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    
+    setIsPressing(false);
+    setProgress(0);
   };
 
   if (!mounted) return null;
@@ -133,19 +186,19 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
               <div className="bg-gray-50/50 rounded-2xl p-5 border border-gray-100 space-y-6">
                 {/* Question Count */}
                 <div className="flex items-center justify-between group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm group-hover:border-blue-200 group-hover:text-blue-500 transition-colors">
-                      <ListOrdered size={20} />
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm group-hover:border-blue-200 group-hover:text-blue-500 transition-colors flex-shrink-0">
+                      <ListOrdered className="w-4 h-4 md:w-5 md:h-5" />
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-gray-700">试题数量</div>
-                      <div className="text-xs text-gray-500">每场模拟考试生成的题目数</div>
+                      <div className="text-xs md:text-sm font-bold text-gray-700 whitespace-nowrap">试题数量</div>
+                      <div className="text-[10px] md:text-xs text-gray-500 hidden sm:block">每场模拟考试生成的题目数</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
                     <button
                       onClick={() => setTempConfig(c => ({ ...c, questionCount: Math.max(5, c.questionCount - 5) }))}
-                      className="w-8 h-8 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-blue-600 font-bold transition-colors"
+                      className="w-6 h-6 md:w-8 md:h-8 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-blue-600 font-bold transition-colors flex items-center justify-center text-xs md:text-base"
                     >
                       -
                     </button>
@@ -154,11 +207,11 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
                       value={tempConfig.questionCount}
                       min={1}
                       onChange={(e) => setTempConfig({ ...tempConfig, questionCount: Number(e.target.value) })}
-                      className="w-16 py-1 text-center font-bold text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-blue-500 transition-colors"
+                      className="w-10 md:w-16 py-1 text-center font-bold text-xs md:text-base text-gray-800 bg-transparent outline-none border-b border-transparent focus:border-blue-500 transition-colors"
                     />
                     <button
                       onClick={() => setTempConfig(c => ({ ...c, questionCount: c.questionCount + 5 }))}
-                      className="w-8 h-8 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-blue-600 font-bold transition-colors"
+                      className="w-6 h-6 md:w-8 md:h-8 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-blue-600 font-bold transition-colors flex items-center justify-center text-xs md:text-base"
                     >
                       +
                     </button>
@@ -167,18 +220,18 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
 
                 {/* Time Limit */}
                 <div className="flex items-center justify-between group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm group-hover:border-blue-200 group-hover:text-blue-500 transition-colors">
-                      <Clock size={20} />
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm group-hover:border-blue-200 group-hover:text-blue-500 transition-colors flex-shrink-0">
+                      <Clock className="w-4 h-4 md:w-5 md:h-5" />
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-gray-700">时间限制</div>
-                      <div className="text-xs text-gray-500">模拟考试的总时长（分钟）</div>
+                      <div className="text-xs md:text-sm font-bold text-gray-700 whitespace-nowrap">时间限制</div>
+                      <div className="text-[10px] md:text-xs text-gray-500 hidden sm:block">模拟考试的总时长（分钟）</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 md:gap-4">
                      <div className="flex flex-col items-end">
-                        <span className="text-lg font-bold text-blue-600 tabular-nums">{tempConfig.timeLimit} <span className="text-xs text-gray-400 font-normal">分钟</span></span>
+                        <span className="text-sm md:text-lg font-bold text-blue-600 tabular-nums">{tempConfig.timeLimit} <span className="text-[10px] md:text-xs text-gray-400 font-normal">分钟</span></span>
                      </div>
                      <input 
                         type="range" 
@@ -187,7 +240,7 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
                         step="5"
                         value={tempConfig.timeLimit}
                         onChange={(e) => setTempConfig({...tempConfig, timeLimit: Number(e.target.value)})}
-                        className="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        className="w-20 md:w-32 h-1.5 md:h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                      />
                   </div>
                 </div>
@@ -202,34 +255,63 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
               </h4>
               
               <div className="bg-red-50/50 rounded-2xl p-5 border border-red-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white border border-red-100 flex items-center justify-center text-red-500 shadow-sm">
-                    <AlertTriangle size={20} />
+                <div className="flex items-center gap-2 md:gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-white border border-red-100 flex items-center justify-center text-red-500 shadow-sm flex-shrink-0">
+                    <AlertTriangle className="w-4 h-4 md:w-5 md:h-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-bold text-gray-800">清空所有进度</div>
-                    <div className="text-xs text-red-400/80">此操作不可恢复，请谨慎操作</div>
+                    <div className="text-xs md:text-sm font-bold text-gray-800 whitespace-nowrap">清空所有进度</div>
+                    <div className="text-[10px] md:text-xs text-red-400/80">长按按钮以清空</div>
                   </div>
                 </div>
                 <button
-                  onClick={() => setClearOpen(true)}
-                  className="px-4 py-2 bg-white border border-red-200 text-red-600 rounded-xl text-sm font-bold shadow-sm hover:bg-red-50 hover:border-red-300 transition-all active:scale-95"
+                  onMouseDown={handlePressStart}
+                  onMouseUp={handlePressEnd}
+                  onMouseLeave={handlePressEnd}
+                  onTouchStart={handlePressStart}
+                  onTouchEnd={handlePressEnd}
+                  className={clsx(
+                    "relative px-3 md:px-4 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-bold shadow-sm transition-all overflow-hidden select-none flex justify-center",
+                    clearStatus === 'cleared' 
+                      ? "bg-green-500 text-white border border-green-600"
+                      : "bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 active:scale-95"
+                  )}
                 >
-                  立即清空
+                  {/* Progress background */}
+                  {isPressing && clearStatus !== 'cleared' && (
+                    <div 
+                      className="absolute inset-0 bg-red-100/50 z-0 transition-all duration-75 ease-linear"
+                      style={{ width: `${progress}%` }}
+                    />
+                  )}
+                  
+                  <div className="relative z-10 flex items-center gap-1.5 md:gap-2">
+                    {clearStatus === 'cleared' ? (
+                      <>
+                        <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5" />
+                        <span>已清空</span>
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 md:w-5 md:h-5" />
+                        <span>{isPressing ? '松开取消' : '长按清空'}</span>
+                      </>
+                    )}
+                  </div>
                 </button>
               </div>
             </section>
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-            <div className="text-xs text-gray-400">
-              设置会自动保存到本地浏览器
+          <div className="px-4 md:px-6 py-4 md:py-5 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
+            <div className="text-[10px] md:text-xs text-gray-400">
+              设置会自动保存
             </div>
             <button
               onClick={handleSave}
               className={clsx(
-                "px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95",
+                "px-4 md:px-6 py-2 md:py-2.5 rounded-xl font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 shadow-lg transition-all active:scale-95",
                 saving === 'success'
                   ? 'bg-green-500 text-white shadow-green-200 hover:bg-green-600'
                   : 'bg-gray-900 text-white shadow-gray-200 hover:bg-gray-800'
@@ -237,12 +319,12 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
             >
               {saving === 'success' ? (
                 <>
-                  <CheckCircle2 size={18} />
+                  <CheckCircle2 className="w-4 h-4 md:w-[18px] md:h-[18px]" />
                   <span>已保存</span>
                 </>
               ) : (
                 <>
-                  <Save size={18} />
+                  <Save className="w-4 h-4 md:w-[18px] md:h-[18px]" />
                   <span>保存设置</span>
                 </>
               )}
@@ -250,17 +332,6 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
           </div>
         </div>
       </div>
-
-      <ConfirmationModal
-        isOpen={clearOpen}
-        onClose={() => setClearOpen(false)}
-        onConfirm={handleConfirmClear}
-        title="清空进度"
-        message="确认清空所有进度？此操作无法撤销。"
-        confirmText="确认清空"
-        cancelText="取消"
-        variant="danger"
-      />
     </>
   );
 }

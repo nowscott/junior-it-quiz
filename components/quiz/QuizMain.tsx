@@ -63,6 +63,39 @@ export default function QuizMain({
   onBackToResult,
 }: QuizMainProps) {
   
+  const isLastQuestion = mode !== 'infinite' && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1;
+
+  // 键盘快捷键支持：左右方向键切换题目
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 避免在输入框中触发
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === 'ArrowLeft') {
+        if (currentQuestionIndex > 0) {
+          onPrevQuestion();
+        }
+      } else if (e.key === 'ArrowRight') {
+        if (mode === 'infinite') {
+          onNextQuestion();
+        } else {
+          // 非无尽模式下，如果是最后一题则不响应（因为需要提交）
+          if (currentQuestionIndex < (currentModuleData?.questions.length || 1) - 1) {
+            onNextQuestion();
+          }
+        }
+      } else if (e.key === 'Enter') {
+        // 在考试模式下，按 Enter 键自动下一题
+        if (mode === 'exam' && !examSubmitted && !isLastQuestion) {
+          onNextQuestion();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentQuestionIndex, mode, currentModuleData, onPrevQuestion, onNextQuestion, examSubmitted, isLastQuestion]);
+
   if (mode === 'exam' && examState === 'intro') {
     return (
       <ExamIntro 
@@ -106,75 +139,37 @@ export default function QuizMain({
     }
   };
 
-  const isLastQuestion = mode !== 'infinite' && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1;
-
-  // 键盘快捷键支持：左右方向键切换题目
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 避免在输入框中触发
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      if (e.key === 'ArrowLeft') {
-        if (currentQuestionIndex > 0) {
-          onPrevQuestion();
-        }
-      } else if (e.key === 'ArrowRight') {
-        if (mode === 'infinite') {
-          onNextQuestion();
-        } else {
-          // 非无尽模式下，如果是最后一题则不响应（因为需要提交）
-          if (currentQuestionIndex < (currentModuleData?.questions.length || 1) - 1) {
-            onNextQuestion();
-          }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentQuestionIndex, mode, currentModuleData, onPrevQuestion, onNextQuestion]);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 md:space-y-6">
       {/* 导航按钮移动到题目上方 */}
       <div className="flex items-center justify-between px-1">
         <button 
           onClick={onPrevQuestion}
           disabled={currentQuestionIndex === 0}
-          className="group flex items-center gap-1 pl-2 pr-4 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all disabled:opacity-0 disabled:cursor-not-allowed"
+          className="group flex items-center gap-1 pl-1 pr-3 py-1.5 md:pl-2 md:pr-4 md:py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all disabled:opacity-0 disabled:cursor-not-allowed"
         >
-          <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
+          <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
             <ChevronLeft size={16} />
           </div>
-          <span>上一题</span>
+          <span className="text-xs md:text-sm">上一题</span>
         </button>
         
-        {isReviewing ? (
-          <button 
-            onClick={onBackToResult}
-            className="group flex items-center gap-1 pl-4 pr-2 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all"
-          >
-            <span>返回成绩单</span>
-            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
-              <ArrowLeft size={16} />
-            </div>
-          </button>
-        ) : mode === 'exam' && !examSubmitted && isLastQuestion ? (
+        {mode === 'exam' && !examSubmitted && isLastQuestion ? (
           <button 
             onClick={onSubmitExam}
-            className="group flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-black shadow-lg shadow-gray-200 transition-all hover:-translate-y-0.5 active:translate-y-0"
+            className="group flex items-center gap-2 px-4 py-2 md:px-5 md:py-2.5 rounded-full text-sm font-bold bg-gray-900 text-white hover:bg-black shadow-lg shadow-gray-200 transition-all hover:-translate-y-0.5 active:translate-y-0"
           >
-            <span>提交试卷</span>
+            <span className="text-xs md:text-sm">提交试卷</span>
             <CheckCircle size={16} />
           </button>
         ) : (
           <button 
             onClick={handleNext}
             disabled={isLastQuestion}
-            className="group flex items-center gap-1 pl-4 pr-2 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="group flex items-center gap-1 pl-3 pr-1 py-1.5 md:pl-4 md:pr-2 md:py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-white/80 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            <span>{mode === 'infinite' ? '下一题' : (isLastQuestion ? '已完成' : '下一题')}</span>
-            <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
+            <span className="text-xs md:text-sm">{mode === 'infinite' ? '下一题' : (isLastQuestion ? '已完成' : '下一题')}</span>
+            <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center group-hover:border-gray-300 group-hover:shadow-sm transition-all">
               <ChevronRight size={16} />
             </div>
           </button>
