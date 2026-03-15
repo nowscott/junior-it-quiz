@@ -51,7 +51,7 @@ export default function ResultCard({
         </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="p-4 bg-gray-50 rounded-2xl">
           <div className="text-sm text-gray-500 mb-1">得分</div>
           <div className={`text-2xl font-bold ${isPass ? 'text-green-600' : 'text-red-600'}`}>
@@ -73,16 +73,19 @@ export default function ResultCard({
       </div>
 
       {examSeed && (
-        <div className="mb-8 p-3 bg-gray-50 rounded-xl inline-flex items-center gap-2 text-sm text-gray-500">
-          <span>考试种子: <span className="font-mono font-bold text-gray-700">{examSeed}</span></span>
-          <button 
-            onClick={copySeed}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
-            title="复制种子"
-          >
-            {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-          </button>
-          {copied && <span className="text-xs text-green-600 animate-in fade-in">已复制</span>}
+        <div className="mb-8 p-3 bg-gray-50 rounded-xl flex flex-col md:flex-row items-center justify-center gap-2 text-sm text-gray-500">
+          <span className="whitespace-nowrap">考试种子:</span>
+          <div className="flex items-center gap-2 max-w-full overflow-hidden">
+             <span className="font-mono font-bold text-gray-700 truncate max-w-[200px] md:max-w-none">{examSeed}</span>
+             <button 
+               onClick={copySeed}
+               className="p-1 hover:bg-gray-200 rounded transition-colors flex-shrink-0"
+               title="复制种子"
+             >
+               {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+             </button>
+             {copied && <span className="text-xs text-green-600 animate-in fade-in whitespace-nowrap">已复制</span>}
+          </div>
         </div>
       )}
 

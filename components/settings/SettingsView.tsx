@@ -181,17 +181,18 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
               
               <div className="bg-gray-50/50 rounded-2xl p-5 border border-gray-100 space-y-6">
                 {/* Question Count */}
-                <div className="flex items-center justify-between group">
+                <div className="flex flex-col md:flex-row md:items-center justify-between group gap-4 md:gap-0">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm group-hover:border-blue-200 group-hover:text-blue-500 transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm group-hover:border-blue-200 group-hover:text-blue-500 transition-colors flex-shrink-0">
                       <ListOrdered size={20} />
                     </div>
                     <div>
                       <div className="text-sm font-bold text-gray-700">试题数量</div>
-                      <div className="text-xs text-gray-500">每场模拟考试生成的题目数</div>
+                      <div className="text-xs text-gray-500 hidden md:block">每场模拟考试生成的题目数</div>
+                      <div className="text-xs text-gray-500 md:hidden">每场考试题目数</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 shadow-sm self-end md:self-auto">
                     <button
                       onClick={() => setTempConfig(c => ({ ...c, questionCount: Math.max(5, c.questionCount - 5) }))}
                       className="w-8 h-8 rounded-lg hover:bg-gray-50 text-gray-500 hover:text-blue-600 font-bold transition-colors"
@@ -215,17 +216,18 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
                 </div>
 
                 {/* Time Limit */}
-                <div className="flex items-center justify-between group">
+                <div className="flex flex-col md:flex-row md:items-center justify-between group gap-4 md:gap-0">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm group-hover:border-blue-200 group-hover:text-blue-500 transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 shadow-sm group-hover:border-blue-200 group-hover:text-blue-500 transition-colors flex-shrink-0">
                       <Clock size={20} />
                     </div>
                     <div>
                       <div className="text-sm font-bold text-gray-700">时间限制</div>
-                      <div className="text-xs text-gray-500">模拟考试的总时长（分钟）</div>
+                      <div className="text-xs text-gray-500 hidden md:block">模拟考试的总时长（分钟）</div>
+                      <div className="text-xs text-gray-500 md:hidden">考试总时长（分钟）</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 self-end md:self-auto">
                      <div className="flex flex-col items-end">
                         <span className="text-lg font-bold text-blue-600 tabular-nums">{tempConfig.timeLimit} <span className="text-xs text-gray-400 font-normal">分钟</span></span>
                      </div>

@@ -102,13 +102,15 @@ export default function QuizApp() {
             // 清除 React 状态
             actions.setUserAnswers({});
             actions.setCurrentQuestionIndex(0);
-            // 提示用户
+            // 提示用户 (已在 SettingsView 中有视觉反馈，此处不再弹窗)
+            /*
             actions.setNotification({
               isOpen: true,
               title: '清理完成',
               message: '已清空所有进度',
               type: 'success'
             });
+            */
           }}
         />
         {mode === 'welcome' ? (
