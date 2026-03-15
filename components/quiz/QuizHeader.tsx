@@ -35,7 +35,7 @@ export default function QuizHeader({
 }: QuizHeaderProps) {
   return (
     <header className="h-14 md:h-16 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-3 md:px-8 z-30 flex-shrink-0">
-      <div className="ml-8 md:ml-0 flex items-center gap-4 overflow-hidden flex-1 min-w-0 mr-2">
+      <div className="ml-14 md:ml-0 flex items-center gap-4 overflow-hidden flex-1 min-w-0 mr-2">
         <h2 className="text-sm md:text-lg font-bold text-gray-900 tracking-tight truncate">
           {currentModuleData?.title}
         </h2>
