@@ -104,14 +104,39 @@ ${distractorsList}
             baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
         });
 
-        const completion = await openai.chat.completions.create({
+        const stream = await openai.chat.completions.create({
             model: "qwen3.5-plus",
-            messages
+            messages,
+            stream: true,
         });
 
-        const explanation = completion.choices[0].message.content;
+        const encoder = new TextEncoder();
 
-        return NextResponse.json({ explanation });
+        const readable = new ReadableStream({
+            async start(controller) {
+                for await (const chunk of stream) {
+                    const content = chunk.choices[0]?.delta?.content || "";
+                    const reasoning = (chunk.choices[0]?.delta as any)?.reasoning_content || "";
+                    
+                    if (reasoning) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'reasoning', text: reasoning })}\n\n`));
+                    }
+                    if (content) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'content', text: content })}\n\n`));
+                    }
+                }
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                controller.close();
+            },
+        });
+
+        return new NextResponse(readable, {
+            headers: {
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+            },
+        });
     } catch (error) {
         console.error('Error generating explanation:', error);
         return NextResponse.json(

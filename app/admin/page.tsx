@@ -24,6 +24,7 @@ export default function AdminPage() {
   const initialOrdersRef = useRef<Record<string, string[]>>({});
   const [defaultAscNext, setDefaultAscNext] = useState(true);
   const [explainAscNext, setExplainAscNext] = useState(true);
+  const [reasoningText, setReasoningText] = useState('');
 
 
   // Check environment
@@ -57,6 +58,11 @@ export default function AdminPage() {
     if (!editingQuestion) return;
     setGenerateStatus('idle');
     setIsGenerating(true);
+    setReasoningText('');
+    
+    // 清空现有解析，准备接收新内容
+    setEditingQuestion(prev => prev ? { ...prev, explanation: '' } : null);
+
     try {
       const response = await fetch('/api/generate-explanation', {
         method: 'POST',
@@ -70,12 +76,44 @@ export default function AdminPage() {
       });
 
       if (!response.ok) throw new Error('生成解析失败');
+      
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('无法读取流数据');
+      
+      const decoder = new TextDecoder();
+      let explanation = '';
+      let reasoning = '';
+      let buffer = '';
 
-      const data = await response.json();
-      setEditingQuestion({
-        ...editingQuestion,
-        explanation: data.explanation || '生成解析失败'
-      });
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim() === '') continue;
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6);
+            if (dataStr === '[DONE]') continue;
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.type === 'reasoning') {
+                reasoning += data.text;
+                setReasoningText(reasoning);
+              } else if (data.type === 'content') {
+                explanation += data.text;
+                setEditingQuestion(prev => prev ? { ...prev, explanation } : null);
+              }
+            } catch (e) {
+              console.error('Parse error:', e, dataStr);
+            }
+          }
+        }
+      }
+
       setGenerateStatus('success');
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       resetTimerRef.current = setTimeout(() => {
@@ -181,6 +219,7 @@ export default function AdminPage() {
     
     // Automatically open edit modal for new question
     setEditingQuestion(newQuestion);
+    setReasoningText('');
     setIsEditModalOpen(true);
     setGenerateStatus('idle');
   };
@@ -343,7 +382,7 @@ export default function AdminPage() {
           <QuestionList
             module={data[selectedModuleId]}
             onAdd={handleAddQuestion}
-            onEdit={(q) => { setEditingQuestion(q); setIsEditModalOpen(true); setGenerateStatus('idle'); }}
+            onEdit={(q) => { setEditingQuestion(q); setReasoningText(''); setIsEditModalOpen(true); setGenerateStatus('idle'); }}
             onDelete={handleDeleteQuestion}
           />
         )}
@@ -370,6 +409,7 @@ export default function AdminPage() {
             : null
         }
         question={editingQuestion}
+        reasoningText={reasoningText}
         onChange={setEditingQuestion}
         onClose={() => setIsEditModalOpen(false)}
         onConfirm={() => editingQuestion && handleUpdateQuestion(editingQuestion)}
