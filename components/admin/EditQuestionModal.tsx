@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Question } from '@/data/types';
 import { Loader2, Sparkles, X, Check, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
@@ -29,14 +29,21 @@ export default function EditQuestionModal({
   generateStatus
 }: Props) {
   const [showPreview, setShowPreview] = useState(false);
-  const [isReasoningExpanded, setIsReasoningExpanded] = useState(true);
+  const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
+  const reasoningEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isReasoningExpanded && reasoningEndRef.current) {
+      reasoningEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [reasoningText, isReasoningExpanded]);
 
   if (!isOpen || !question) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+      <div className="bg-white rounded-2xl w-full max-w-5xl h-[85vh] overflow-hidden flex flex-col shadow-2xl transition-all duration-300">
+        <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
           <h3 className="font-bold text-lg">
             编辑题目 #{displayIndex ?? ''}
           </h3>
@@ -145,27 +152,34 @@ export default function EditQuestionModal({
                 </div>
               </div>
 
-              {reasoningText && (
-                <div className="border border-indigo-100 rounded-lg overflow-hidden transition-all duration-300">
-                  <button 
-                    onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
-                    className="w-full flex items-center justify-between p-2.5 bg-indigo-50/50 hover:bg-indigo-50 text-xs text-indigo-700 font-medium transition-colors"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-indigo-500" />
-                      <span>AI 思考过程</span>
-                    </div>
-                    {isReasoningExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  </button>
-                  
-                  {isReasoningExpanded && (
-                    <div className="p-3 bg-slate-50 border-t border-indigo-100 max-h-48 overflow-y-auto text-xs text-slate-600 font-mono leading-relaxed whitespace-pre-wrap">
-                      {reasoningText}
-                      {isGenerating && <span className="animate-pulse inline-block w-1.5 h-3 ml-1 bg-indigo-400 align-middle"></span>}
-                    </div>
-                  )}
-                </div>
-              )}
+              <div className={`border rounded-lg overflow-hidden transition-all duration-300 ${reasoningText || isGenerating ? 'border-indigo-100' : 'border-gray-100 opacity-60 hover:opacity-100'}`}>
+                <button 
+                  onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
+                  disabled={!reasoningText && !isGenerating}
+                  className={`w-full flex items-center justify-between p-2.5 text-xs font-medium transition-colors group
+                    ${reasoningText || isGenerating ? 'bg-indigo-50/50 hover:bg-indigo-50 text-indigo-700' : 'bg-gray-50 text-gray-400 cursor-not-allowed'}
+                  `}
+                >
+                  <div className="flex items-center gap-1.5 overflow-hidden">
+                    <Sparkles size={14} className={`shrink-0 ${reasoningText || isGenerating ? 'text-indigo-500' : 'text-gray-400'}`} />
+                    <span className="shrink-0">AI 思考过程</span>
+                    {!isReasoningExpanded && reasoningText && (
+                      <span className="ml-2 text-indigo-400 font-mono truncate opacity-70 group-hover:opacity-100 transition-opacity">
+                        {reasoningText.split('\n').filter(l => l.trim()).pop() || '...'}
+                      </span>
+                    )}
+                  </div>
+                  {(reasoningText || isGenerating) && (isReasoningExpanded ? <ChevronDown size={14} className="shrink-0" /> : <ChevronRight size={14} className="shrink-0" />)}
+                </button>
+                
+                {isReasoningExpanded && (reasoningText || isGenerating) && (
+                  <div className="p-3 bg-slate-50 border-t border-indigo-100 max-h-48 overflow-y-auto text-xs text-slate-600 font-mono leading-relaxed whitespace-pre-wrap">
+                    {reasoningText}
+                    {isGenerating && <span className="animate-pulse inline-block w-1.5 h-3 ml-1 bg-indigo-400 align-middle"></span>}
+                    <div ref={reasoningEndRef} />
+                  </div>
+                )}
+              </div>
 
               <div className="flex-1 min-h-[300px] flex flex-col">
                 {!showPreview ? (
