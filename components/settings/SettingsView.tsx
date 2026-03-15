@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings2, ListOrdered, Clock, Save, Trash2, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Settings2, ListOrdered, Clock, Save, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import ConfirmationModal from '@/components/modals/ConfirmationModal';
-import { SETTINGS_STORAGE_KEY, PROGRESS_STORAGE_KEY } from '@/hooks/useQuizState';
+import { SETTINGS_STORAGE_KEY } from '@/hooks/useQuizState';
 import clsx from 'clsx';
 
 interface SettingsViewProps {
@@ -19,18 +19,29 @@ export default function SettingsView({ isOpen, onClose, onClearProgress }: Setti
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (typeof parsed?.questionCount === 'number' && typeof parsed?.timeLimit === 'number') {
-            setTempConfig({ questionCount: parsed.questionCount, timeLimit: parsed.timeLimit });
-          }
-        } catch {}
+    // 使用 setTimeout 将状态更新推迟到下一个 tick，避免同步更新导致的 cascading renders
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // 同样延迟读取 localStorage
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (typeof parsed?.questionCount === 'number' && typeof parsed?.timeLimit === 'number') {
+              setTempConfig({ questionCount: parsed.questionCount, timeLimit: parsed.timeLimit });
+            }
+          } catch {}
+        }
       }
-    }
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Handle ESC key to close

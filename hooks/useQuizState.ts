@@ -19,7 +19,7 @@ export function useQuizState() {
   const [currentModuleId, setCurrentModuleId] = useState<string>(''); 
   const [mode, setMode] = useState<AppMode>('welcome');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<Record<string, Record<number, number>>>({});
+  const [userAnswers, setUserAnswers] = useState<Record<string, Record<string, number>>>({});
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
   const [infiniteQuestions, setInfiniteQuestions] = useState<Question[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);

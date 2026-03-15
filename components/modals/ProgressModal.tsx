@@ -8,7 +8,7 @@ interface ProgressModalProps {
   onClose: () => void;
   title: string;
   questions: Question[];
-  userAnswers: Record<number, number>;
+  userAnswers: Record<string, number>;
   currentIndex: number;
   onJump: (index: number) => void;
   showResults?: boolean; // 新增：是否显示正误结果
@@ -45,11 +45,11 @@ export default function ProgressModal({
                 <span>
                   共 {questions.length} 题 | 
                   <span className="text-green-600 mx-1">
-                    {questions.filter((q, i) => userAnswers[i] === q.correctAnswer).length} 正确
+                    {questions.filter((q) => userAnswers[q.id] === q.correctAnswer).length} 正确
                   </span>
                   /
                   <span className="text-red-500 mx-1">
-                    {questions.filter((q, i) => userAnswers[i] !== undefined && userAnswers[i] !== q.correctAnswer).length} 错误
+                    {questions.filter((q) => userAnswers[q.id] !== undefined && userAnswers[q.id] !== q.correctAnswer).length} 错误
                   </span>
                 </span>
               ) : (
@@ -69,9 +69,9 @@ export default function ProgressModal({
         <div className="flex-1 overflow-y-auto p-6">
           <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-3">
             {questions.map((q, idx) => {
-              const isAnswered = userAnswers[idx] !== undefined;
+              const isAnswered = userAnswers[q.id] !== undefined;
               const isCurrent = currentIndex === idx;
-              const isCorrect = isAnswered && userAnswers[idx] === q.correctAnswer;
+              const isCorrect = isAnswered && userAnswers[q.id] === q.correctAnswer;
               
               // 决定显示状态
               let statusClass = "border-gray-50 bg-gray-50 text-gray-400 hover:border-gray-200 hover:bg-gray-100";

@@ -271,12 +271,15 @@ export function useExamLogic(
 
   const handleAnswer = (answerIndex: number) => {
     const moduleId = mode === 'exam' ? 'exam' : (mode === 'infinite' ? 'infinite' : currentModuleId);
+    const questionId = currentQuestion?.id;
     
+    if (!questionId) return;
+
     setUserAnswers(prev => ({
       ...prev,
       [moduleId]: {
         ...prev[moduleId],
-        [currentQuestionIndex]: answerIndex
+        [questionId]: answerIndex
       }
     }));
 
@@ -303,8 +306,8 @@ export function useExamLogic(
   const examResult = useMemo(() => {
     if (!examQuestions.length) return { score: 0, correct: 0 };
     let correct = 0;
-    examQuestions.forEach((q, i) => {
-      if (userAnswers['exam']?.[i] === q.correctAnswer) correct++;
+    examQuestions.forEach((q) => {
+      if (userAnswers['exam']?.[q.id] === q.correctAnswer) correct++;
     });
     return {
       score: Math.round((correct / examQuestions.length) * 100),
@@ -334,7 +337,7 @@ export function useExamLogic(
       reviewWrong: () => {
         setShowResultCard(false);
         setExamState('result');
-        const firstWrongIndex = examQuestions.findIndex((q, i) => userAnswers['exam']?.[i] !== q.correctAnswer);
+        const firstWrongIndex = examQuestions.findIndex((q) => userAnswers['exam']?.[q.id] !== q.correctAnswer);
         if (firstWrongIndex !== -1) setCurrentQuestionIndex(firstWrongIndex);
       },
       handleOpenSettings: () => { setIsSettingsModalOpen(true); setSidebarOpen(false); },
