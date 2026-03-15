@@ -33,12 +33,6 @@ export default function EditQuestionModal({
   const reasoningEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isGenerating) {
-      setIsReasoningExpanded(true);
-    }
-  }, [isGenerating]);
-
-  useEffect(() => {
     if (isReasoningExpanded && reasoningEndRef.current) {
       reasoningEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
