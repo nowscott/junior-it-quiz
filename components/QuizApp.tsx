@@ -93,7 +93,24 @@ export default function QuizApp() {
       )}
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-gray-50/50">
-        <SettingsView isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} />
+        <SettingsView 
+          isOpen={isSettingsModalOpen} 
+          onClose={() => setIsSettingsModalOpen(false)} 
+          onClearProgress={() => {
+            // 清除本地存储
+            localStorage.removeItem('quiz_progress_v1');
+            // 清除 React 状态
+            actions.setUserAnswers({});
+            actions.setCurrentQuestionIndex(0);
+            // 提示用户
+            actions.setNotification({
+              isOpen: true,
+              title: '清理完成',
+              message: '已清空所有进度',
+              type: 'success'
+            });
+          }}
+        />
         {mode === 'welcome' ? (
           <div className="flex-1 overflow-y-auto">
             {!sidebarOpen && (

@@ -9,9 +9,10 @@ import clsx from 'clsx';
 interface SettingsViewProps {
   isOpen: boolean;
   onClose: () => void;
+  onClearProgress: () => void;
 }
 
-export default function SettingsView({ isOpen, onClose }: SettingsViewProps) {
+export default function SettingsView({ isOpen, onClose, onClearProgress }: SettingsViewProps) {
   const [tempConfig, setTempConfig] = useState<{ questionCount: number; timeLimit: number }>({ questionCount: 30, timeLimit: 30 });
   const [saving, setSaving] = useState<'idle' | 'success'>('idle');
   const [clearOpen, setClearOpen] = useState(false);
@@ -59,7 +60,7 @@ export default function SettingsView({ isOpen, onClose }: SettingsViewProps) {
   };
 
   const handleConfirmClear = () => {
-    localStorage.removeItem(PROGRESS_STORAGE_KEY);
+    onClearProgress();
     setClearOpen(false);
   };
 
