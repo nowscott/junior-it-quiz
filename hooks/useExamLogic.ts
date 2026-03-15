@@ -303,7 +303,8 @@ export function useExamLogic(
   };
 
   // Result calculation
-  const examResult = useMemo(() => {
+  // Simplified to avoid React Compiler "Expected static flag was missing" error with useMemo + early return
+  const examResult = (() => {
     if (!examQuestions.length) return { score: 0, correct: 0 };
     let correct = 0;
     examQuestions.forEach((q) => {
@@ -313,7 +314,7 @@ export function useExamLogic(
       score: Math.round((correct / examQuestions.length) * 100),
       correct
     };
-  }, [userAnswers, examQuestions]);
+  })();
 
   return {
     handlers: {
