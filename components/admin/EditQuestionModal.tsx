@@ -149,13 +149,18 @@ export default function EditQuestionModal({
                 <div className="border border-indigo-100 rounded-lg overflow-hidden transition-all duration-300">
                   <button 
                     onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
-                    className="w-full flex items-center justify-between p-2.5 bg-indigo-50/50 hover:bg-indigo-50 text-xs text-indigo-700 font-medium transition-colors"
+                    className="w-full flex items-center justify-between p-2.5 bg-indigo-50/50 hover:bg-indigo-50 text-xs text-indigo-700 font-medium transition-colors group"
                   >
-                    <div className="flex items-center gap-1.5">
-                      <Sparkles size={14} className="text-indigo-500" />
-                      <span>AI 思考过程</span>
+                    <div className="flex items-center gap-1.5 overflow-hidden">
+                      <Sparkles size={14} className="text-indigo-500 shrink-0" />
+                      <span className="shrink-0">AI 思考过程</span>
+                      {!isReasoningExpanded && (
+                        <span className="ml-2 text-indigo-400 font-mono truncate opacity-70 group-hover:opacity-100 transition-opacity">
+                          {reasoningText.split('\n').filter(l => l.trim()).pop() || '...'}
+                        </span>
+                      )}
                     </div>
-                    {isReasoningExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    {isReasoningExpanded ? <ChevronDown size={14} className="shrink-0" /> : <ChevronRight size={14} className="shrink-0" />}
                   </button>
                   
                   {isReasoningExpanded && (
