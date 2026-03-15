@@ -119,11 +119,14 @@ export default function QuestionCard({
   const finalIndices = clientShuffledIndices || shuffledIndices;
 
   const handleSelect = (shuffledIdx: number) => {
-    if (showResult && mode !== 'exam') return; 
-    if (mode === 'exam' && showResult) return; 
+    // 只有考试模式下，显示结果（交卷后）不能再选
+    if (mode === 'exam' && showResult) return;
     
-    // 将打乱后的索引映射回原始索引
+    // 练习模式下，如果做对了，不能再选
+    // 如果做错了，可以继续选
     const originalIndex = finalIndices[shuffledIdx];
+    if (mode !== 'exam' && showResult && userAnswer === question.correctAnswer) return;
+
     onSelectAnswer(originalIndex);
   };
 
@@ -135,8 +138,24 @@ export default function QuestionCard({
       return 'default';
     }
     
-    if (originalIndex === question.correctAnswer) return 'correct';
-    if (userAnswer === originalIndex && originalIndex !== question.correctAnswer) return 'incorrect';
+    // 如果是考试模式，且已交卷，显示正确答案和用户选择（如果选错）
+    if (mode === 'exam') {
+      if (originalIndex === question.correctAnswer) return 'correct';
+      if (userAnswer === originalIndex && originalIndex !== question.correctAnswer) return 'incorrect';
+      return 'default';
+    }
+
+    // 练习模式：
+    const isUserCorrect = userAnswer === question.correctAnswer;
+    
+    if (isUserCorrect) {
+      // 答对了，显示绿色
+      if (originalIndex === question.correctAnswer) return 'correct';
+    } else {
+      // 答错了，显示红色
+      if (userAnswer === originalIndex) return 'incorrect';
+    }
+    
     return 'default';
   };
 
@@ -233,7 +252,7 @@ export default function QuestionCard({
       </div>
 
       {/* 解析区域 (仅在显示结果时出现) */}
-      {showResult && (
+      {showResult && (mode === 'exam' || userAnswer === question.correctAnswer) && (
         <div className="mt-8 pt-8 border-t border-gray-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
             <div className="flex items-center justify-between mb-3">

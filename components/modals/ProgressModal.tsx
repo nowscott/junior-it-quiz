@@ -24,7 +24,7 @@ export default function ProgressModal({
   onJump,
   showResults = false
 }: ProgressModalProps) {
-  if (!isOpen) return null;
+  const wrongQuestionsCount = questions.filter((q) => userAnswers[q.id] !== undefined && userAnswers[q.id] !== q.correctAnswer).length;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6">
@@ -49,7 +49,7 @@ export default function ProgressModal({
                   </span>
                   /
                   <span className="text-red-500 mx-1">
-                    {questions.filter((q) => userAnswers[q.id] !== undefined && userAnswers[q.id] !== q.correctAnswer).length} 错误
+                    {wrongQuestionsCount} 错误
                   </span>
                 </span>
               ) : (
@@ -57,12 +57,14 @@ export default function ProgressModal({
               )}
             </p>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Grid Area */}
@@ -78,14 +80,20 @@ export default function ProgressModal({
               
               if (isCurrent) {
                 statusClass = "border-blue-600 bg-blue-50 text-blue-700 shadow-sm z-10 scale-105";
-              } else if (showResults && isAnswered) {
-                if (isCorrect) {
-                  statusClass = "border-green-100 bg-green-50 text-green-600 hover:border-green-300";
-                } else {
-                  statusClass = "border-red-100 bg-red-50 text-red-600 hover:border-red-300";
-                }
-              } else if (isAnswered) {
-                statusClass = "border-green-100 bg-green-50 text-green-600 hover:border-green-300";
+              } else if (showResults) { // Removed isAnswered check for showResults to always show status if answered
+                 if (isAnswered) {
+                    if (isCorrect) {
+                      statusClass = "border-green-100 bg-green-50 text-green-600 hover:border-green-300";
+                    } else {
+                      statusClass = "border-red-100 bg-red-50 text-red-600 hover:border-red-300";
+                    }
+                 }
+              } else if (isAnswered) { // Normal mode: show correct/wrong immediately
+                 if (isCorrect) {
+                   statusClass = "border-green-100 bg-green-50 text-green-600 hover:border-green-300";
+                 } else {
+                   statusClass = "border-red-100 bg-red-50 text-red-600 hover:border-red-300";
+                 }
               }
 
               return (
@@ -104,13 +112,7 @@ export default function ProgressModal({
                   {idx + 1}
                   
                   {/* 角标 */}
-                  {isAnswered && !showResults && !isCurrent && (
-                    <div className="absolute -top-1.5 -right-1.5 bg-white rounded-full">
-                      <CheckCircle2 size={12} className="text-green-500" />
-                    </div>
-                  )}
-                  
-                  {showResults && isAnswered && !isCurrent && (
+                  {isAnswered && !isCurrent && (
                     <div className="absolute -top-1.5 -right-1.5 bg-white rounded-full">
                       {isCorrect ? (
                         <CheckCircle2 size={12} className="text-green-500" />
@@ -131,23 +133,14 @@ export default function ProgressModal({
             <div className="w-3 h-3 rounded-md border-2 border-blue-600 bg-blue-50 mr-2" />
             当前题
           </div>
-          {showResults ? (
-            <>
-              <div className="flex items-center text-xs text-gray-500">
-                <div className="w-3 h-3 rounded-md bg-green-50 border-2 border-green-100 mr-2" />
-                正确
-              </div>
-              <div className="flex items-center text-xs text-gray-500">
-                <div className="w-3 h-3 rounded-md bg-red-50 border-2 border-red-100 mr-2" />
-                错误
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center text-xs text-gray-500">
-              <div className="w-3 h-3 rounded-md bg-green-50 border-2 border-green-100 mr-2" />
-              已做
-            </div>
-          )}
+          <div className="flex items-center text-xs text-gray-500">
+            <div className="w-3 h-3 rounded-md bg-green-50 border-2 border-green-100 mr-2" />
+            正确
+          </div>
+          <div className="flex items-center text-xs text-gray-500">
+            <div className="w-3 h-3 rounded-md bg-red-50 border-2 border-red-100 mr-2" />
+            错误
+          </div>
           <div className="flex items-center text-xs text-gray-500">
             <div className="w-3 h-3 rounded-md bg-gray-50 border-2 border-gray-50 mr-2" />
             未做
