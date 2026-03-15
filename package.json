@@ -1,6 +1,6 @@
 {
   "name": "junior-it-quiz",
-  "version": "1.1.7",
+  "version": "1.1.8",
   "description": "Next.js 重构版初中信息技术选择题练习系统",
   "private": true,
   "engines": {
