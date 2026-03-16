@@ -1,6 +1,5 @@
 'use client';
 
-import { Menu } from 'lucide-react';
 import Sidebar from './layout/Sidebar';
 import ProgressModal from './modals/ProgressModal';
 import ConfirmationModal from './modals/ConfirmationModal';

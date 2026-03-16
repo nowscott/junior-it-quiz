@@ -115,8 +115,9 @@ ${distractorsList}
         const readable = new ReadableStream({
             async start(controller) {
                 for await (const chunk of stream) {
-                    const content = chunk.choices[0]?.delta?.content || "";
-                    const reasoning = (chunk.choices[0]?.delta as any)?.reasoning_content || "";
+                    const delta = chunk.choices[0]?.delta as { content?: string | null; reasoning_content?: string | null };
+                    const content = delta?.content || "";
+                    const reasoning = delta?.reasoning_content || "";
                     
                     if (reasoning) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'reasoning', text: reasoning })}\n\n`));

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { Question } from '@/data/types';
 import { Loader2, Sparkles, X, Check, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
@@ -32,11 +33,18 @@ export default function EditQuestionModal({
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const reasoningEndRef = useRef<HTMLDivElement>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [prevIsGenerating, setPrevIsGenerating] = useState(isGenerating);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  if (isGenerating && !prevIsGenerating) {
+    setElapsedTime(0);
+    setPrevIsGenerating(true);
+  } else if (!isGenerating && prevIsGenerating) {
+    setPrevIsGenerating(false);
+  }
 
   useEffect(() => {
     if (isGenerating) {
-      setElapsedTime(0);
       timerRef.current = setInterval(() => {
         setElapsedTime(prev => prev + 1);
       }, 1000);
@@ -96,11 +104,13 @@ export default function EditQuestionModal({
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 {question.image && (
-                  <div className="mt-2">
-                    <img
+                  <div className="mt-2 relative h-48 w-full border border-gray-200 rounded-lg bg-white overflow-hidden">
+                    <Image
                       src={question.image}
                       alt="题目图片预览"
-                      className="max-h-48 rounded-lg border border-gray-200 object-contain bg-white"
+                      fill
+                      className="object-contain"
+                      unoptimized
                     />
                   </div>
                 )}
@@ -233,11 +243,13 @@ export default function EditQuestionModal({
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
                 {question.explanationImage && (
-                  <div className="mt-2">
-                    <img
+                  <div className="mt-2 relative h-32 w-full border border-gray-200 rounded-lg bg-white overflow-hidden">
+                    <Image
                       src={question.explanationImage}
                       alt="解析图片预览"
-                      className="max-h-32 rounded-lg border border-gray-200 object-contain bg-white"
+                      fill
+                      className="object-contain"
+                      unoptimized
                     />
                   </div>
                 )}

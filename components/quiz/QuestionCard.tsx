@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { CheckCircle, XCircle, Info, Maximize2, Copy, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { type Question } from '@/data/questions';
@@ -130,7 +130,7 @@ export default function QuestionCard({
   const finalIndices = clientShuffledIndices || shuffledIndices;
 
   // 用户点击选项（只是预选，不提交）
-  const handleSelect = (shuffledIdx: number) => {
+  const handleSelect = useCallback((shuffledIdx: number) => {
     // 只有考试模式下，显示结果（交卷后）不能再选
     if (mode === 'exam' && showResult) return;
     
@@ -139,14 +139,14 @@ export default function QuestionCard({
 
     const originalIndex = finalIndices[shuffledIdx];
     setSelectedOption(originalIndex);
-  };
+  }, [mode, showResult, userAnswer, question.correctAnswer, finalIndices]);
 
   // 确认提交答案
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     if (selectedOption !== null && selectedOption !== userAnswer) {
       onSelectAnswer(selectedOption);
     }
-  };
+  }, [selectedOption, userAnswer, onSelectAnswer]);
 
   const getOptionStatus = (shuffledIdx: number) => {
     const originalIndex = finalIndices[shuffledIdx];
@@ -290,7 +290,7 @@ export default function QuestionCard({
                 status === 'correct' && "text-green-900",
                 status === 'incorrect' && "text-red-900"
               )}>
-                {question.options[originalIdx]}
+                {option}
               </span>
 
               {/* 状态图标 */}

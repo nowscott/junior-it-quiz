@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { ModuleData, Question } from '@/data/types';
 import { Edit2, Plus, Trash2 } from 'lucide-react';
 
@@ -37,11 +38,13 @@ export default function QuestionList({ module, onAdd, onEdit, onDelete }: Props)
                   <h3 className="font-medium text-gray-900 line-clamp-2">{q.text}</h3>
                 </div>
                 {q.image && (
-                  <div className="mt-2">
-                    <img
+                  <div className="mt-2 relative h-40 w-64 border border-gray-200 rounded-lg bg-white overflow-hidden">
+                    <Image
                       src={q.image}
                       alt="题目图片"
-                      className="max-h-40 rounded-lg border border-gray-200 object-contain bg-white"
+                      fill
+                      className="object-contain"
+                      unoptimized
                     />
                   </div>
                 )}

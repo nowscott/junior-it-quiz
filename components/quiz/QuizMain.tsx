@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { ChevronLeft, ChevronRight, CheckCircle, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react';
 import { Question, ModuleData } from '@/data/questions';
 import { AppMode, ExamState, ExamConfig } from '@/hooks/useQuizState';
 import { formatTime } from '@/utils/format';
@@ -51,7 +51,6 @@ export default function QuizMain({
   examSessionId,
   currentModuleData,
   examSubmitted,
-  isReviewing,
   showResult,
   onStartExam,
   onRestartExam,
@@ -60,7 +59,6 @@ export default function QuizMain({
   onPrevQuestion,
   onNextQuestion,
   onSubmitExam,
-  onBackToResult,
 }: QuizMainProps) {
   
   const isLastQuestion = mode !== 'infinite' && currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1;
