@@ -283,10 +283,19 @@ export function useExamLogic(
       }
     }));
 
+    // 模式特定逻辑：自动跳转
     if (mode === 'infinite') {
       setTimeout(() => {
         handleNextQuestion();
       }, 1000);
+    } else if (mode === 'exam') {
+      // 在考试模式下，提交答案后自动切换到下一题（如果是最后一题则不跳转）
+      const isLastQuestion = currentQuestionIndex === (currentModuleData?.questions.length || 1) - 1;
+      if (!isLastQuestion) {
+        setTimeout(() => {
+          handleNextQuestion();
+        }, 300); // 稍微延迟一下，给用户一个反馈时间
+      }
     }
   };
 
