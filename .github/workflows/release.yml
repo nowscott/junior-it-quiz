@@ -16,12 +16,16 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    # 防止机器人自己的提交造成死循环触发
     if: "!contains(github.event.head_commit.message, 'chore(release):')"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # 注意：如果这个 Release 创建后还需要触发其他的部署 Action，
+          # 请在仓库 Settings -> Secrets 中创建一个 Personal Access Token (PAT)，
+          # 并将下面的 GITHUB_TOKEN 替换为你的 PAT，例如：token: ${{ secrets.MY_PAT }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
@@ -29,8 +33,7 @@ jobs:
         with:
           node-version: 'lts/*'
 
-      - name: Install dependencies
-        run: npm ci
+      # 【优化1】移除了不必要的 npm ci 步骤，节省 CI 运行时间
 
       - name: Configure Git
         run: |
@@ -40,19 +43,16 @@ jobs:
       - name: Bump version and push tag
         id: version
         run: |
-          # 根据 commit message 判断版本更新类型
-          # fix: -> patch
-          # feat: -> minor
-          # BREAKING CHANGE: -> major
-          # 默认为 patch
-          
           BUMP_TYPE="patch"
           COMMIT_MSG="${{ github.event.head_commit.message }}"
           
-          if [[ "$COMMIT_MSG" == *"feat:"* ]]; then
-            BUMP_TYPE="minor"
-          elif [[ "$COMMIT_MSG" == *"BREAKING CHANGE:"* ]]; then
+          # 【优化2】修正版本判断逻辑，修复优先级倒置和误判问题
+          # 1. 优先判断是否包含 BREAKING CHANGE
+          if grep -q "BREAKING CHANGE:" <<< "$COMMIT_MSG"; then
             BUMP_TYPE="major"
+          # 2. 判断提交信息是否以 feat: 或 feat( 开头（支持换行符后的新行）
+          elif grep -qE "(^|[$'\n'])feat(\(|:)" <<< "$COMMIT_MSG"; then
+            BUMP_TYPE="minor"
           fi
           
           echo "Bumping version type: $BUMP_TYPE"
@@ -77,14 +77,17 @@ jobs:
 
       - name: Sync to developer branch
         run: |
-          # 1. 获取远程的最新的 developer 分支状态
           git fetch origin developer
-          
-          # 2. 切换到本地的 developer 分支
           git checkout developer
           
-          # 3. 将刚刚打完 tag 并更新了版本的 main/master 分支合并过来
-          git merge ${{ github.ref_name }} --no-edit
+          # 【优化3】增加合并冲突保护机制
+          echo "正在尝试将 ${{ github.ref_name }} 合并到 developer..."
           
-          # 4. 把同步好的 developer 分支推送到 GitHub 远程仓库
-          git push origin developer
+          if git merge ${{ github.ref_name }} --no-edit; then
+            echo "合并成功，准备推送到远程仓库..."
+            git push origin developer
+          else
+            echo "::error::检测到合并冲突！已中止自动合并。请手动将 ${{ github.ref_name }} 分支的更改合并到 developer。"
+            git merge --abort
+            exit 1 # 让此步骤报错，提醒开发者手动处理
+          fi
