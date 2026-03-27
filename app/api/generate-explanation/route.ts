@@ -8,7 +8,6 @@ export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
     try {
-        // 生产环境未配置密钥时直接短路返回
         if (!process.env.DASHSCOPE_API_KEY) {
             return NextResponse.json(
                 { error: '未配置 DASHSCOPE_API_KEY，已禁用解析生成功能' },
@@ -29,7 +28,6 @@ export async function POST(request: Request) {
         const correctOptionText = options[correctAnswer];
         const optionsList = options.map((opt: string) => `• ${opt}`).join('\n');
 
-        // 优化后的提示词：新增了 Markdown 转义与代码块约束
         const prompt = `请为以下初中信息技术选择题生成详细解析。
 
 解析要求（严格遵守格式与空行）：
@@ -90,6 +88,7 @@ ${optionsList}
             }
         }
 
+        // 兼容 OpenAI 的多模态消息格式
         const messages: ChatCompletionMessageParam[] = [
             { role: "system", content: "你是一位经验丰富的初中信息技术老师，擅长用通俗易懂且深入浅出的语言为学生讲解习题。" },
             imageUrl
@@ -102,8 +101,9 @@ ${optionsList}
             baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
         });
 
+        // 👉 直接使用原生的多模态模型 qwen3.5-plus
         const stream = await openai.chat.completions.create({
-            model: "qwen-plus",
+            model: "qwen3.5-flash-2026-02-23", 
             messages,
             stream: true,
             temperature: 0.3, 
